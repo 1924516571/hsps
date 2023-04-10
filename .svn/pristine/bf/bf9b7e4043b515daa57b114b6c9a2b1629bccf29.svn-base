@@ -1,0 +1,198 @@
+<template>
+  <div class="side-menu-container">
+    <suc-menu :config="option">
+      <!-- v-authox="'dataCenter_info|access'" -->
+      <!-- <suc-submenu name="1">
+        <template slot="title">
+          <span class="txt iconfont icon-guanwangjianbao"></span>
+          <span class="txt">基础数据</span>
+        </template>
+        <suc-menu-item name="wyList" to="/main/dataCenter/wyList">
+          <span class="txt">物业列表</span>
+        </suc-menu-item>
+        <suc-menu-item name="xqList" to="/main/dataCenter/xqList">
+          <span class="txt">小区列表</span>
+        </suc-menu-item>
+        <suc-menu-item name="ldList" to="/main/dataCenter/ldList">
+          <span class="txt">楼栋列表</span>
+        </suc-menu-item>
+        <suc-menu-item name="fwList" to="/main/dataCenter/fwList">
+          <span class="txt">房屋列表</span>
+        </suc-menu-item>
+      </suc-submenu>
+      <suc-menu-item name="zhManage" to="/main/dataCenter/zhManage">
+        <span class="txt1 iconfont icon-xitongguanli-yonghu"></span>
+        <span class="txt1"><span>租户管理</span></span>
+      </suc-menu-item>
+      <suc-menu-item name="fpfw" to="/main/dataCenter/fpfw">
+        <span class="txt1 iconfont icon-shujuzhongxin-jigouguanli"></span>
+        <span class="txt1"><span>分配房屋</span></span>
+      </suc-menu-item>
+      <suc-submenu name="2">
+        <template slot="title">
+          <span class="txt iconfont icon-xuncha"></span>
+          <span class="txt">物业巡查</span>
+        </template>
+        <suc-menu-item name="wyPlanList" to="/main/dataCenter/wyPlanList"><span class="txt">计划清单</span></suc-menu-item>
+        <suc-menu-item name="wyXcRecord" to="/main/dataCenter/wyXcRecord"><span class="txt">物业巡查记录</span></suc-menu-item>
+      </suc-submenu>
+      <suc-menu-item name="xcjl" to="/main/dataCenter/qjxc">
+        <span class="txt1 iconfont icon-pianchangguanli-xunchajilu"></span>
+        <span class="txt1"><span>巡查记录</span></span>
+      </suc-menu-item>
+   <suc-submenu name="3">
+        <template slot="title">
+          <span class="txt iconfont icon-pianchangguanli-xunchajilu"></span>
+          <span class="txt">巡查记录</span>
+        </template> <suc-menu-item name="qjxc" to="/main/dataCenter/qjxc"><span class="txt">区级巡查</span></suc-menu-item>
+        <suc-menu-item name="jdxc" to="/main/dataCenter/jdxc"><span class="txt">街道巡查</span></suc-menu-item>
+      </suc-submenu>
+      <suc-menu-item name="caseRecord" to="/main/dataCenter/caseRecord">
+        <span class="txt1 iconfont icon-pianchangguanli-lvzhi"></span>
+        <span class="txt1"><span>案件记录</span></span>
+      </suc-menu-item>
+      
+      <suc-submenu name="4">
+        <template slot="title">
+          <span class="txt iconfont icon-jianbao"></span>
+          <span class="txt">简报分析</span>
+        </template>
+        <suc-menu-item name="dataAnaly" to="/main/dataCenter/dataAnaly">
+          <span class="txt">保障住房数据分析</span>
+        </suc-menu-item>
+        <suc-menu-item name="xcjb" to="/main/dataCenter/xcjb">
+          <span class="txt">物业计划巡查简报</span>
+        </suc-menu-item>
+      </suc-submenu> -->
+      <suc-menu-item name="water" to="/main/dataCenter/water">
+        <span class="txt1 iconfont icon-shouye-wushuichulichang"></span>
+        <span class="txt1"><span>排水系统</span></span>
+      </suc-menu-item>
+      <suc-submenu name="1">
+        <template slot="title">
+          <span class="txt iconfont icon-jianbao"></span>
+          <span class="txt">排水设施</span>
+        </template>
+        <suc-menu-item name="jlss" to="/main/dataCenter/psFacility/jlss">
+          <span class="txt">截流设施</span>
+        </suc-menu-item>
+        <suc-menu-item name="dxss" to="/main/dataCenter/psFacility/dxss">
+          <span class="txt">调蓄/净化设施</span>
+        </suc-menu-item>
+      </suc-submenu>
+      <suc-submenu name="2">
+        <template slot="title">
+          <span class="txt iconfont icon-guanwangjianbao"></span>
+          <span class="txt">管网</span>
+        </template>
+        <suc-menu-item name="jcj" to="/main/dataCenter/pipeNetwork/jcj">
+          <span class="txt">检查井</span>
+        </suc-menu-item>
+        <suc-menu-item name="ysk" to="/main/dataCenter/pipeNetwork/ysk">
+          <span class="txt">雨水口</span>
+        </suc-menu-item>
+        <suc-menu-item name="psq" to="/main/dataCenter/pipeNetwork/psq">
+          <span class="txt">排水渠信息管理</span>
+        </suc-menu-item>
+        <suc-menu-item name="psk" to="/main/dataCenter/pipeNetwork/psk">
+          <span class="txt">排放口信息管理</span>
+        </suc-menu-item>
+      </suc-submenu>
+      <suc-submenu name="3">
+        <template slot="title">
+          <span class="txt iconfont icon-shuihuanjingguanli-shuizhi"></span>
+          <span class="txt">自然资源</span>
+        </template>
+        <suc-menu-item name="dmxx" to="/main/dataCenter/nature/dmxx">
+          <span class="txt">断面信息</span>
+        </suc-menu-item>
+        <suc-menu-item name="sgn" to="/main/dataCenter/nature/sgn">
+          <span class="txt">水功能</span>
+        </suc-menu-item>
+      </suc-submenu>
+    </suc-menu>
+  </div>
+</template>
+
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { State, Mutation, Action, namespace } from "vuex-class";
+import { SucIcon, SucMenu, SucMenuItem, SucSubmenu } from "@suc/ui";
+import { MenuConfig } from "@suc/ui/interfaces";
+import { backUrl } from "../../../../public/config.js";
+
+// import {backUrl} from ""
+
+//@ts-ignore
+// const Submenu = Menu.Sub;
+
+@Component({
+  components: {
+    SucMenu,
+    SucMenuItem,
+    SucSubmenu,
+    SucIcon,
+  },
+})
+export default class topBar extends Vue {
+  // activeNav: string = "";
+  option: MenuConfig = {
+    activeName: "",
+    // theme: "light",
+    openNames: [" "], //@description 展开的 Submenu 的 name 集合
+  };
+  backUrl: any = backUrl;
+  mounted() {
+    this.option.activeName = this.$route.matched[2].meta.name;
+   
+    // if (this.$route.matched[2].meta.name != "jlss" || this.$route.matched[2].meta.name!= "dxss") {
+    //   console.log("5555");
+    //   this.option.openNames = [""];
+    // } else {
+    //   this.option.openNames = ["1"];
+    // }
+  }
+  // ,immediate:true
+  @Watch("$route", { deep: true,immediate:true })
+  changeRoute() {
+    this.option.activeName = this.$route.matched[2].meta.name;
+    //  var a = ["jlss", "dxss"];
+    // if (a.indexOf(this.option.activeName as any) != -1) {
+    //      this.option.openNames['0'] = ["1"];
+    //   console.log(this.option.openNames, "7777");
+    // } else {
+    //   this.option.openNames = [""];
+    // }
+  }
+}
+</script>
+<style lang="scss" scoped>
+.side-menu-container {
+  float: left;
+  width: 175px;
+  height: 100%;
+  // min-height: 225px;
+  // margin: 18px auto 25px auto;
+  background-color: #091c37;
+  border: solid 1px transparent;
+  overflow: auto;
+  .txt {
+    color: rgba($color: #fff, $alpha: 0.9);
+    &:nth-of-type(2) {
+      display: inline-block;
+      padding-left: 6px;
+    }
+  }
+  .txt1 {
+    color: rgba($color: #fff, $alpha: 0.9);
+    padding-left: 9px;
+    &:nth-of-type(2) {
+      display: inline-block;
+      padding-left: 5px;
+    }
+  }
+  .txt2 {
+    padding-left: 10px;
+  }
+}
+</style>

@@ -1,0 +1,225 @@
+import http from 'axios'
+import qs from 'qs'
+import { SucMessage } from "@suc/ui"
+
+// 当前用户信息
+export const getCurUser = (): Promise<any> => {
+  const url = '/rest/authox/curUser'
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+// 片区
+export const getPq = (): Promise<any> => {
+  const url = 'jnsw/base/pqList'
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+
+
+//惠山行政区域
+export const getHsqy = (): Promise<any> => {
+  const url = 'wjBaseServer/system/organization/wxList'
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+// 养护对象
+export const getYHDX = (params: any) => {
+  const url = "xckh/plan/report/getYhdxType"
+  return http({
+      url: url,
+      params: params,
+      paramsSerializer: function (params) {
+          return qs.stringify(params, { arrayFormat: 'repeat' })
+      }
+  }).then((res: any) => res.data).catch((err: any) => {
+  })
+}
+
+// 养护对象(不包含全部)
+export const getYhdxTypeWhenReport = (params: any): Promise<any> => {
+  const url = 'xckh/plan/report/getYhdxTypeWhenReport'
+  return http({
+    url: url,
+    params: params,
+    paramsSerializer: function (params) {
+        return qs.stringify(params, { arrayFormat: 'repeat' })
+    }
+}).then((res: any) => res.data).catch((err: any) => {
+})
+
+}
+
+
+
+// 部门
+export const getBm = (): Promise<any> => {
+  const url = 'jnsw/base/bmList';
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+export const onImageLoad = (url: string): any => {
+  return http.get(url, { responseType: 'arraybuffer' }).then(res => {
+    return window.URL.createObjectURL(new Blob([res.data], { type: 'application/octet-stream' }))
+  }).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+export const ondownload = (url: string): any => {
+  return http.get(url, {responseType: 'blob'}).then((res: any) => {
+      console.log(res,"???");
+    if (res.status == 200 && res.data) {
+      // let disposition = res.headers['content-disposition']
+      // let fileName = decodeURI(
+      //   disposition.substring(
+      //     disposition.indexOf('filename=') + 9,
+      //     disposition.length
+      //   )
+      // )
+      let blob = new Blob([res.data], { type: 'application/vnd.ms-excel;charset=utf-8' })
+      console.log(blob,"555");
+      let downloadUrl = URL.createObjectURL(blob)
+      let alink = document.createElement('a') //创建a标签
+      alink.style.display = "none";
+      alink.href = downloadUrl
+      alink.download = '计划清单';// 表格名称.文件类型
+      alink.click()
+      // alink.remove()
+     URL.revokeObjectURL(alink.href);
+    }
+  }).catch((err: any) => {
+    console.log(err,"错误");
+    
+    // SucMessage.error(err.data.message)
+  })
+}
+
+
+// 运维单位
+export const getYwdw = (): Promise<any> => {
+  const url = 'jnsw/base/ywdwList'
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+
+
+// 派单
+export const onDispatch = (params: any): Promise<any> => {
+  const url = 'jnsw/task/gzcl';
+  return http({
+    method: 'post',
+    url: url,
+    params: params,
+    paramsSerializer: function (params) {
+      return qs.stringify(params, { indices: false })
+    },
+  }).catch((err: any) => {
+    SucMessage.error(err.data.message)
+  })
+}
+
+
+/**
+ * 
+ * **********************************************************************************************
+ */
+
+// 行政区域
+export const getAreaCode = (): any => {
+  const url = 'wjBaseServer/system/organization/queryWxD3Tree';
+  return http.get(url).then((res: any) => res.data);
+}
+
+
+// get请求不带参数
+export const getNoParam = ( url: string): Promise<any> => {
+  return http.get(url).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.desc)
+  })
+}
+
+// get请求带参数
+export const getWithParam = (url: string,params: any): Promise<any> => {
+  return http.get(url, { params }).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.desc)
+  })
+}
+ 
+// post请求带参数 form
+export const postWithParam = (url: string, params: any): Promise<any> => {
+  return http.post(url, qs.stringify(params, { indices: false })).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// post请求带参数 Json
+export const postWithParamJson = (url: string, params: any): Promise<any> => {
+  return http({
+      url: url,
+      method: "post",
+      data: params,
+      headers: {
+          "Content-Type": 'application/json',
+      }
+  }).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// post请求不带参数
+export const postNoParam = (url: string): Promise<any> => {
+  return http.post(url).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+// put带参数
+export const putWithParam = (url: string,params: any): Promise<any> => {
+  return http.put(url,{params}).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// put请求带参数 Json
+export const putWithParamJson = (url: string, params: any): Promise<any> => {
+  return http({
+      url: url,
+      method: "PUT",
+      data: params,
+      headers: {
+          "Content-Type": 'application/json',
+      }
+  }).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// put不带参数
+export const putNoParam = (url: string): Promise<any> => {
+  return http.put(url).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// delete删带参数
+export const deleteWithParam = (url: string,params: any): Promise<any> => {
+  return http.delete(url,{params}).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+
+// delete不带参数
+export const deleteNoParam = (url: string): Promise<any> => {
+  return http.delete(url).then((res: any) => res.data).catch((err: any) => {
+      SucMessage.error(err.data.message)
+  })
+}
+

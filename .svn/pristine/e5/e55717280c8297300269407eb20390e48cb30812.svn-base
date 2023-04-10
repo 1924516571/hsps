@@ -1,0 +1,26 @@
+//字体
+$font-size-base:                    14px;
+$font-size-small:                   12px;
+$font-size-large:                   16px;
+
+$heading-color:                     #333333;//标题
+$secondary-color:                   #666666;//次级文字
+$help-color:                        #999999;//辅助文字
+
+// 页面背景色
+$pages-bg:                          #f8f8f9;
+
+// 边框
+$border-color:                      #dde4eb;      
+
+// 状态
+$state-blue:                        #5397ff;
+$state-red:                         #ff5a47;
+$state-warn:                        #ffab3d;
+$state-green:                       #32bb53;
+
+// 修饰
+$blue-gradient:                     linear-gradient(272deg, #2d65d6 0%, #5196ff 100%); 
+$red-gradient:                      linear-gradient(269deg, #fb6a3d 0%, #ffc144 100%); 
+$green-gradient:                    linear-gradient(269deg, #16c4b2 0%, #60e0e5 100%);
+$border-radius:                     4px;

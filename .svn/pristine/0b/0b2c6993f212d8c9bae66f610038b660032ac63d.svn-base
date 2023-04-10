@@ -1,0 +1,489 @@
+<template>
+  <div class="info">
+    <div class="info-view bg-shadow">
+      <div class="top">
+        <div class="top-item">
+          <div class="top-item-sub">
+            <suc-input
+              v-model="tableParams.name"
+              placeholder="请输入角色名称"
+              style="width: 200px"
+            ></suc-input>
+          </div>
+          <div class="top-item-sub">
+            <suc-input
+              v-model="tableParams.description"
+              placeholder="请输入角色描述"
+              style="width: 200px"
+            ></suc-input>
+          </div>
+          <div class="top-item-sub">
+            <suc-button @click="onSearch" type="primary" :config="cxConfig">查询</suc-button>
+          </div>
+        </div>
+        <div class="top-item">
+          <el-button type="primary"  icon="el-icon-plus" size="small"  @click="onadd()">新增</el-button>
+        </div>
+      </div>
+      <div class="content">
+        <table-page
+          :columns="columns"
+          :tableData="tableData"
+          :pageParams="pageParams"
+          v-loading="loading"
+          @get-page="getPage"
+          @get-size="getSize"
+        >
+          <template v-slot:qx="{ row }">
+            <div >
+              <el-button size="mini" type="success" @click="qx(row)" plain
+                >分配</el-button
+              >
+            </div>
+          </template>
+          <template v-slot:zt="{ row }">
+            <span :class="row.status == '1' ? 'qy' : 'jy'"></span>
+            <span>{{ row.status == "1" ? "启用" : "禁用" }}</span>
+          </template>
+          <template v-slot:operation="{ row }">
+            <el-button size="mini" type="primary" @click="onedit(row)" plain
+              >编辑</el-button
+            >
+            <!-- <el-button size="mini" :type="row.status == '1' ? 'info' : 'success'" @click="onclk(row)">{{row.status == '1' ? '禁用' : '启用'}}</el-button> -->
+            <el-button
+              v-if="row.status == '1'"
+              size="mini"
+              type="info"
+              @click="onjy(row)"
+              plain
+              >禁用</el-button
+            >
+            <el-button
+              v-if="row.status == '0'"
+              size="mini"
+              type="success"
+              @click="onqy(row)"
+              plain
+              >启用</el-button
+            >
+
+            <el-button size="mini" type="danger" @click="ondelete(row)" plain
+              >删除</el-button
+            >
+          </template>
+        </table-page>
+      </div>
+      <Jsgl-modal
+        :title="modalTitle"
+        :modal="modal"
+        :formParams="formParams"
+        @toggle="toggle"
+        @on-submit="oncreate"
+      >
+      </Jsgl-modal>
+      <Fp-modal
+        :title="modalTitle"
+        :fpqxmodal="fpqxmodal"
+        :fpParams="fpParams"
+        @toggle="toggle1"
+        @on-submit="setQx"
+      >
+      </Fp-modal>
+      <!-- 删除弹框 -->
+      <div class="delete-view" v-show="delmodel">
+        <delete-modal
+          @getignore="cancel"
+          @getsave="save"
+          v-loading="delLoading"
+        ></delete-modal>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { SearchComponent, TablePage } from "@/components";
+import { SucButton, SucInput, SucDatePicker, SucSelect } from "@suc/ui";
+import { JsglModal, FpModal, DeleteModal } from "./model";
+import { ButtonConfig } from "@suc/ui/interfaces";
+import { publicApi } from "@/api";
+import { url } from "../../../../../public/config";
+import { values } from "lodash";
+
+@Component({
+  components: {
+    TablePage,
+    SucButton,
+    SucInput,
+    SucDatePicker,
+    SucSelect,
+    SearchComponent,
+    JsglModal,
+    FpModal,
+    DeleteModal,
+  },
+})
+export default class GivePlan extends Vue {
+  loading: boolean = true;
+  modalTitle: string = "";
+  modal: boolean = false;
+  fpqxmodal: boolean = false;
+  delParams: object = {};
+  overParams: object = {};
+  btnFlag: any = "";
+  delmodel: boolean = false;
+  delLoading: boolean = false;
+  formParams: any = {
+    description: "",
+    enabled: "",
+    identification: "",
+    jumppagename: "",
+    name: "",
+    sort: "",
+    status: "",
+  };
+  fpParam: any = {
+    roleId: "",
+  };
+  fpParams: any = {
+    id: "",
+  };
+  uploadHeaders: any = {
+    Authorization: "bearer" + localStorage.getItem("refresh-token"),
+  };
+  tableParams: any = {
+    // leader: "",
+    name: "",
+    description: "",
+    pageNumber: "",
+    pageSize: "",
+    sortOrder: "asc",
+  };
+  cxConfig:ButtonConfig = {
+    icon:"md-search"
+  };
+  columns: any[] = [
+    {
+      type: "index",
+      title: "序号",
+      width: "100",
+    },
+    {
+      title: "角色名称",
+      key: "name",
+    },
+    {
+      title: "标识",
+      key: "identification",
+    },
+    {
+      title: "角色描述",
+      key: "description",
+    },
+    {
+      title: "排序",
+      key: "sort",
+    },
+    {
+      title: "权限分配",
+      slot: "qx",
+    },
+    {
+      title: "状态",
+      slot: "zt",
+    },
+    {
+      title: "操作",
+      slot: "operation",
+      // width: 240,
+    },
+  ];
+  pageParams: any = {
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  };
+  xzParam: any = {
+    roleId: "",
+    permissionid: "",
+  };
+  treeData: any = [];
+  tableData: any = [];
+  list: Array<any> = [];
+  yhid: any = "";
+  mounted() {
+    this.onpage();
+  }
+  qx(row: any) {
+    this.fpqxmodal = true;
+    this.modalTitle = "权限分配";
+    // this.treeData=[]
+    // this.fpParams=row
+    this.getTree(row);
+  }
+
+  async getTree(row: any) {
+    this.treeData = [];
+    this.fpParam.roleId = row.id;
+    this.yhid = row.id;
+    let url = "/wjBaseServer/system/menu/zTree";
+    let data = await publicApi.postWithParam(url, this.fpParam);
+    this.list = data.data;
+    console.log(this.list);
+    this.fpParams = this.list;
+    //处理平面数据转为tree结构
+    // this.list.forEach(item => {
+    //   if(!item.pId){
+    //     this.treeData.push(item)
+    //   }
+    //   const children=this.list.filter(data=>data.pId===item.id)
+    //   if(!children.length)return
+    //   item.children=children
+    // });
+    // this.$nextTick(()=>{
+    // (this.$refs['checkTree'] as any).setCurrentKey(this.list)
+    // })
+    // this.fpParams=this.treeData
+    // return this.fpParams
+  }
+
+  onqy(row: any) {
+    this.formParams = row;
+    this.formParams.id = row.id;
+    this.formParams.status = "1";
+    let url = "/wjBaseServer/system/role/prohibitRole";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.success("启用成功");
+        this.onpage();
+      } else {
+        this.$SucMessage.error("失败");
+      }
+    });
+  }
+  onjy(row: any) {
+    this.formParams = row;
+    this.formParams.id = row.id;
+    this.formParams.status = "0";
+    let url = "/wjBaseServer/system/role/prohibitRole";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.success("禁用成功");
+        this.onpage();
+      } else {
+        this.$SucMessage.error("失败");
+      }
+    });
+  }
+  async onpage() {
+    this.loading = true;
+    this.tableParams.pageNumber = this.pageParams.current;
+    this.tableParams.pageSize = this.pageParams.pageSize;
+    let url = "/wjBaseServer/system/role/roleList";
+    let data = await publicApi.postWithParam(url, this.tableParams);
+    if (data.result) {
+      this.loading = false;
+      this.tableData = data.data.rows;
+      this.pageParams.total = parseInt(data.data.total);
+      // this.$SucMessage.success("加载成功");
+    } else {
+      this.$SucMessage.error("加载失败");
+      this.tableData = [];
+    }
+  }
+  // PicSuccess(file: any) {
+  //   if (file.result) {
+  //     this.$SucMessage.success("导入成功");
+  //   } else if (file.data.length < 0) {
+  //     this.$SucMessage.info("导入数据为空");
+  //   }
+  //   this.onpage();
+  // }
+  // onChangeSex() {}
+  onadd() {
+    this.modal = true;
+    this.btnFlag = "add";
+    this.modalTitle = "新增角色信息";
+    this.formParams = {};
+  }
+  toggle(val: any) {
+    this.modal = val;
+  }
+  toggle1(val: any) {
+    this.fpqxmodal = val;
+  }
+  oncreate() {
+    this.modal = false;
+    this.fpqxmodal = false;
+    switch (this.btnFlag) {
+      case "add":
+        this.setCreate();
+        break;
+      case "edit":
+        this.setEdit();
+        break;
+      default:
+        break;
+    }
+  }
+  // 新增接口
+  setCreate() {
+    this.loading = true;
+    let url = "/wjBaseServer/system/role/addRole";
+    publicApi.postWithParam(url, this.formParams).then((res: any) => {
+      if (res.result) {
+        this.$SucMessage.success("新增成功");
+        this.loading = false;
+        this.onpage();
+      } else {
+        this.$SucMessage.success("新增失败");
+        this.loading = false;
+      }
+    });
+    // this.onpage();
+  }
+  // 编辑接口
+  async setEdit() {
+    this.loading = true;
+    let url = "/wjBaseServer/system/role/updateRole";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.success("更新成功");
+        this.modal = false;
+        this.onpage();
+        this.loading = false;
+      } else {
+        this.modal = false;
+        this.$SucMessage.error("更新失败");
+        this.loading = false;
+      }
+    });
+    // this.onpage();
+  }
+  setQx() {
+    this.fpqxmodal = false;
+    this.xzParam.permissionid = this.fpParams.id;
+    this.xzParam.roleId = this.yhid;
+    let url = "/wjBaseServer/system/menu/saveRoleMenu";
+    publicApi.postWithParam(url, this.xzParam).then((res: any) => {
+      if (res.result) {
+        this.$SucMessage.success("提交成功！");
+      } else {
+        this.$SucMessage.success("提交失败！");
+      }
+    });
+  }
+  onedit(row: any) {
+    this.btnFlag = "edit";
+    this.modalTitle = "编辑角色信息";
+    this.modal = true;
+    this.formParams.description = row.description;
+    // this.formParams.enabled=row.enabled
+    this.formParams.identification = row.identification;
+    this.formParams.jumppagename = row.jumppagename;
+    this.formParams.name = row.name;
+    this.formParams.sort = row.sort;
+    this.formParams.status = row.status;
+    // this.formParams=row
+    this.formParams.id = row.id;
+  }
+  ondelete(row: any) {
+    this.delmodel = true;
+    this.delParams = {
+      id: row.id,
+    };
+  }
+  async cancel(val: any) {
+    this.delmodel = val;
+  }
+  async save() {
+    this.delLoading = true;
+    let url = "/wjBaseServer/system/role/delRole";
+    publicApi.postWithParam(url, this.delParams).then((data: any) => {
+      if (data.result == true) {
+        this.delmodel = false;
+        this.$SucMessage.info("删除成功");
+        this.delLoading = false;
+        this.onpage();
+      } else {
+        this.$SucMessage.error("删除失败");
+        this.delLoading = false;
+      }
+    });
+  }
+  getPage(page: any) {
+    this.loading = true;
+    this.pageParams.current = page;
+    this.onpage();
+  }
+  getSize(size: any) {
+    this.loading = true;
+    this.pageParams.current = 1;
+    this.pageParams.pageSize = size;
+    this.onpage();
+  }
+  onSearch(val: any) {
+    // this.tableParams.leader = val;
+    this.onpage();
+  }
+}
+</script>
+<style lang="scss" scoped>
+.info {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  position: relative;
+  &-view {
+    height: 100%;
+    .top {
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      &-item {
+        display: flex;
+        &-sub {
+          margin-right: 10px;
+        }
+      }
+    }
+    .content {
+      height: calc(100% - 65px);
+      border-top: 1px solid #dde4eb;
+      .link-text {
+        color: #5397ff;
+        cursor: pointer;
+      }
+    }
+  }
+  .qy {
+    background-color: #4caf50;
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .jy {
+    background-color: red;
+    width: 8px;
+    display: inline-block;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .delete-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+}
+</style>

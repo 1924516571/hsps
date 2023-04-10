@@ -1,0 +1,9 @@
+<template>
+    <div class="contain" >123</div>
+</template>
+<style scoped>
+.contain {
+  width: 100%;
+  height: 100%;
+}
+</style>

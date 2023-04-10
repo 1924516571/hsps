@@ -1,0 +1,10 @@
+//左侧导航栏menu组件
+$menu-light-bg:                     #091c37;
+$menu-light-color:                  rgba(255,255,255,0.9);
+$menu-font-size:                      12px;
+$menu-light-active-submenu-item-bg: #3a7bef;
+
+// 弹窗modal组件
+$modal-header-bgcolor:              #3a7bef;
+$modal-header-color:                #fff;
+$modal-close-color:                 #fff;

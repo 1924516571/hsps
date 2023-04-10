@@ -1,0 +1,65 @@
+{
+  "id": "3195262",
+  "name": "武进",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "2486582",
+      "name": "短信",
+      "font_class": "duanxin",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "7197902",
+      "name": "短信",
+      "font_class": "duanxin1",
+      "unicode": "e6b1",
+      "unicode_decimal": 59057
+    },
+    {
+      "icon_id": "7208327",
+      "name": "短信",
+      "font_class": "duanxin2",
+      "unicode": "e669",
+      "unicode_decimal": 58985
+    },
+    {
+      "icon_id": "10392609",
+      "name": "短信",
+      "font_class": "duanxin3",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "1367306",
+      "name": "标准",
+      "font_class": "biaozhun",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "2199033",
+      "name": "文件管理",
+      "font_class": "wenjianguanli",
+      "unicode": "e615",
+      "unicode_decimal": 58901
+    },
+    {
+      "icon_id": "4851363",
+      "name": "法律法规",
+      "font_class": "falvfagui",
+      "unicode": "e617",
+      "unicode_decimal": 58903
+    },
+    {
+      "icon_id": "10798340",
+      "name": "其他文件",
+      "font_class": "qitawenjian",
+      "unicode": "e621",
+      "unicode_decimal": 58913
+    }
+  ]
+}

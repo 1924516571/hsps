@@ -1,0 +1,163 @@
+<template>
+  <div>
+    <el-dialog :append-to-body="true" :title="title" :visible.sync="modal" :close-on-click-modal="true" :before-close="onCancel">
+      <el-form class="form" :model="formParams" ref="jqForm" label-width="auto" size="small" :rules="rules">
+        <div>
+          <el-form-item label="系统编码:" prop="systemid">
+            <el-input v-model="formParams.systemid" :disabled="title=='新增' ? false : true" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="系统名称:">
+            <el-input v-model="formParams.name" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="系统类型:" prop="systemType">
+            <el-select  v-model="formParams.systemType"  style="width:100%;" placeholder="请选择" size="mini">
+              <el-option v-for="item in Options"  :label="item.label" :value="item.value" :key="item.index"> </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="汇水面积:">
+            <el-input v-model="formParams.servicearea" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="服务人口数:">
+            <el-input v-model="formParams.servicepopulation" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="径流系数:">
+            <el-input v-model="formParams.runoffCoeff" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="设计重现期:">
+            <el-input v-model="formParams.designRtp" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="记录建立日期:">
+            <el-date-picker
+              v-model="formParams.estDate"
+              style="width: 100%"
+              type="date"
+              value-format="yyyy-MM-dd"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+          <el-form-item label="最后修改日期:">
+            <el-date-picker
+              v-model="formParams.updateDate"
+              style="width: 100%"
+              type="date"
+              value-format="yyyy-MM-dd"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+          <el-form-item label="记录建立单位:">
+            <el-input v-model="formParams.estUnit" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="数据维护单位:">
+            <el-input v-model="formParams.orgUnit" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="坐标系统:">
+            <el-input v-model="formParams.coorsystem" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="高程系统:">
+            <el-input v-model="formParams.elevsystem" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="排水体制说明:">
+            <el-input v-model="formParams.drainsystem" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+          <el-form-item label="备注:">
+            <el-input type="textarea" :rows="2" v-model="formParams.remark" style="width: 100%" placeholder="请输入"></el-input>
+          </el-form-item>
+        </div>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="onCancel">取 消</el-button>
+        <el-button type="primary" @click="onOk()">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Prop, Emit, Watch } from "vue-property-decorator";
+import { SucModal, SucForm, SucFormItem, SucInput, SucSelect, SucDatePicker } from "@suc/ui";
+import { validateIdNo } from "@/utils/validator.js";
+import { publicApi } from "@/api";
+@Component({
+  components: {
+    SucModal,
+    SucForm,
+    SucFormItem,
+    SucInput,
+    SucSelect,
+    SucDatePicker,
+  },
+})
+export default class ProtectHouseModal extends Vue {
+  @Prop() title!: string;
+  @Prop() modal!: boolean;
+  rules: any = {
+    systemid: [{ required: true, message: "请输入系统编码", trigger: "blur" }],
+    systemType: [{ required: true, message: "请选择系统类型", trigger: "change" }],
+    idCard: [{ required: true, trigger: "blur", validator: validateIdNo }],
+  };
+  @Prop({ type: Object, default: () => {} })
+  formParams!: any; //新增接口需要的参数
+  Options:any=''
+  @Emit()
+  toggle(val: boolean) {
+    return val;
+  }
+  @Emit()
+  onSubmit() {}
+  onCancel() {
+    this.toggle(false);
+    (this.$refs["jqForm"] as any).resetFields();
+  }
+  mounted() {
+    this.getData();
+  }
+  async getData() {
+    const url = "server/dataCenter/psSystem/getSystemType";
+    const data = await publicApi.getNoParam(url);
+    this.Options =data.data.map((e: any) => {
+      return{
+        value:e.code,
+        label:e.level,
+      }
+    })
+  } 
+  onOk() {
+    (this.$refs["jqForm"] as any).validate((valid: any) => {
+      if (valid) {
+        this.onSubmit();
+      } else {
+        return false;
+      }
+    });
+  }
+}
+</script>
+<style lang="scss" scoped>
+$deep: "::v-deep";
+::v-deep.el-dialog__wrapper {
+  .el-dialog {
+    .el-dialog__header {
+      background-color: #5993fa;
+    }
+    .el-dialog__title {
+      color: #fff;
+    }
+    .el-dialog__headerbtn .el-dialog__close {
+      color: #fff;
+    }
+    .el-dialog__body {
+      height: 570px;
+      overflow-y: auto;
+    }
+    .el-dialog__footer {
+      border-top: 1px solid #e8eaec;
+    }
+  }
+}
+.form {
+  display: flex;
+  div {
+    flex: 1;
+    margin-right: 10px;
+  }
+}
+</style>

@@ -1,0 +1,161 @@
+// import "reflect-metadata";
+import Vue from "vue";
+import App from "./App.vue";
+import store from "./stores";
+import "./utils/class-component-hooks";
+import plugin from "./utils/zkzy-plugin";
+import { Modal, Message } from "iview";
+import axios from "axios";
+import { SucMessage } from "@suc/ui";
+import authox from "@suc/authox/plugins/authox-vue";
+import VueOl from "@suc/monch";
+import VueQuillEditor from "vue-quill-editor";
+import "quill/dist/quill.core.css"; // import styles
+import "quill/dist/quill.snow.css"; // for snow theme
+import "quill/dist/quill.bubble.css"; // for bubble theme
+import "@suc/ui/assets/iconfont/iconfont.css";
+// 组件
+import Element from "element-ui";
+import "./styles/suc-iconfont/iconfont.css";
+import "./styles/wj-iconfont/iconfont.css";
+import "./styles/bzf-iconfont/iconfont.css";
+import "@suc/authox/styles/authox.scss";
+import "iview/dist/styles/iview.css";
+import "element-ui/lib/theme-chalk/index.css";
+import "./styles/index.scss";
+import Viewer from "v-viewer";
+import "viewerjs/dist/viewer.css";
+import router from "./router";
+// import "../mock/mock.js";
+// 全局引入变量文件
+import globalData from "./constants/global";
+Vue.prototype.$globalData = globalData;
+// Vue.prototype.$proxyurl = "http://192.168.6.98:8088";      //表格导出本地地址
+Vue.prototype.$proxyurl = "http://47.100.221.151:8088"; // 表格导出线上地址
+axios.defaults.baseURL = "./api";
+// axios.defaults.baseURL = "http://localhost:8080";
+Vue.use(authox, store);
+
+Vue.use(VueOl);
+
+Vue.use(VueQuillEditor);
+
+Vue.use(plugin);
+Vue.use(Viewer);
+Vue.use(Element);
+
+Vue.prototype.$Modal = Modal;
+// Vue.prototype.$http = axios;
+
+
+let tk = localStorage.getItem("refresh-token");
+axios.defaults.headers["Authorization"] = "bearer " + tk;
+
+let axiosHttp = axios.create({
+  baseURL: "./api",
+});
+axiosHttp.defaults.headers["Authorization"] = "bearer " + tk;
+
+let axiosBase = axios.create({
+  baseURL: "./api",
+});
+delete axiosBase.defaults.headers["Authorization"];
+
+let axiosRoot = axios.create({
+  baseURL: "./",
+});
+
+Vue.prototype.$http = axiosHttp;
+Vue.prototype.$base = axiosBase;
+Vue.prototype.$rt = axiosRoot;
+
+Vue.prototype.$SucMessage = SucMessage;
+
+Vue.prototype.$Message = Message;
+
+Vue.config.productionTip = false;
+
+// http response 服务器响应拦截器，这里拦截401错误，并重新跳入登页
+
+axios.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          router.replace({
+            path: "/login",
+          });
+          break;
+        case 403:
+          router.replace({
+            path: "/login",
+          });
+          break;
+        // case 404:
+        //   router.replace({
+        //     path: "./login",
+        //   });
+        //   break;
+        case 500:
+          SucMessage.error("服务器端出错");
+          break;
+        default:
+          try {
+            if (error.response.request.responseURL.includes("check")) {
+              router.replace({
+                path: "/login",
+              });
+            }
+          } catch (e) {
+            console.log(e);
+          }
+      }
+    }
+    return Promise.reject(error.response);
+  }
+);
+
+router.beforeEach((to, from, next) => {
+  // LoadingBar.start();
+  switch (to.fullPath) {
+    case "/login":
+      next();
+      break;
+    case "/register":
+      next();
+      break;
+    case "/report":
+      next();
+      break;
+    default:
+      axiosHttp.get("waterloo/check").then(
+        (e) => {
+          next();
+        },
+        (err) => {
+           console.log(err.request.status, "444");
+          if (err.request.status == 401 || err.request.status == 404) {
+            SucMessage.error("check调用失败");
+            router.replace({
+              path: "/login",
+            });
+          } else {
+            next(false);
+          }
+        }
+      );
+  }
+});
+
+router.afterEach((route) => {
+  // LoadingBar.finish();
+});
+
+new Vue({
+  router,
+  store,
+  render: (h) => h(App),
+}).$mount("#app");

@@ -1,0 +1,5 @@
+import DxssDddModal from "./DxssDddModal.vue";
+import JlssAddModal from "./JlssAddModal.vue";
+export { default as DeleteModal } from "./DeleteModal.vue"
+
+export { DxssDddModal, JlssAddModal };

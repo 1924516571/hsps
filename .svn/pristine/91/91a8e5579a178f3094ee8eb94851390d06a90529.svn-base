@@ -1,0 +1,30 @@
+{
+  "id": "3858371",
+  "name": "bzf",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "1263279",
+      "name": "简报",
+      "font_class": "jianbao",
+      "unicode": "e61a",
+      "unicode_decimal": 58906
+    },
+    {
+      "icon_id": "3001111",
+      "name": "巡查",
+      "font_class": "xuncha",
+      "unicode": "e667",
+      "unicode_decimal": 58983
+    },
+    {
+      "icon_id": "6752601",
+      "name": "案件管理",
+      "font_class": "anjianguanli",
+      "unicode": "e609",
+      "unicode_decimal": 58889
+    }
+  ]
+}

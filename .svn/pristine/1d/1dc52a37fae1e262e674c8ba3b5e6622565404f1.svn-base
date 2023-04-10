@@ -1,0 +1,6 @@
+@import "./variables";
+@import "~@suc/ui/styles/variables";
+@import "~@suc/ui/styles/other";
+@import "./tabs";
+@import "./modal";
+@import "./menu";

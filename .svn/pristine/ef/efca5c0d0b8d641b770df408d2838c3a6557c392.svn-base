@@ -1,0 +1,313 @@
+<template>
+  <!-- 资料库 -->
+  <div class="module-view">
+    <div class="bg-shadow top">
+      <div>
+        <el-button icon="el-icon-plus" size="small" type="primary" @click="onadd()">
+          新增
+        </el-button>
+        <el-button icon="el-icon-plus" size="small" type="primary" @click="onedit()">
+          编辑
+        </el-button>
+        <el-button icon="el-icon-delete" size="small" type="danger" @click="handleDelete()">
+          删除
+        </el-button>
+      </div>
+      <div></div>
+    </div>
+    <div class="plan">
+      <div class="bg-shadow left">
+          <el-table
+            ref="checkTree"
+            :data="treeData"
+            style="width: 100%;margin-bottom: 20px;"
+            row-key="departmentId"
+            border
+            @row-click="getNode"
+            default-expand-all
+            highlight-current-row
+            :tree-props="{children: 'children'}">
+            <el-table-column
+              prop="fullName"
+              label="部门名称"
+              width="400">
+            </el-table-column>
+            <el-table-column
+              prop="myid"
+              label="部门编码"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="tel"
+              label="电话"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="fax"
+              label="传真"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="description"
+              label="部门描述">
+            </el-table-column>
+          </el-table>
+      </div>
+    </div>
+    <Bmgl-modal :title="fileTitle" :model="model" :formParams="formParams" @toggle="toggle" @on-submit="oncreate"></Bmgl-modal>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { SucButton, SucTree, SucModal, SucForm, SucFormItem, SucSelect, SucInput } from "@suc/ui";
+import { BmglModal, DeleteModal } from "./model";
+import { SearchComponent, TablePage } from "@/components";
+import { infoApi, publicApi } from "@/api";
+// import fileIcon from "@/constants/fileIcon";
+@Component({
+  components: {
+    SucButton,
+    SucTree,
+    SucModal,
+    SucForm,
+    SucFormItem,
+    SucSelect,
+    SucInput,
+    TablePage,
+    SearchComponent,
+    BmglModal,
+    DeleteModal
+  },
+})
+export default class TransferPlan extends Vue {
+  treeData: any = [];
+  model: boolean = false;
+  data: any = '';
+  fileTitle: any = '';
+  currentNodekey: any = "";
+  from: any = "";
+  btnFlag: string = '';
+  Titles: any = "";
+  editParentName:any = '';
+  loading: boolean = false;
+  ppid:any='';
+  list:Array<any>=[];
+  formParams: any = {
+    fullName:'',
+    tel:'',
+    fax:'',
+    description:'',
+    myid:'',
+    name:''
+  };
+  fufrom:any=''
+  fileTableParams:any = {};
+  selectNodeId: string = ""; //选中节点id
+  defaultProps: any = {
+    children: "children",
+    label: "name",
+  };
+  treeKey:any= '';
+  breadList:any=[]
+  treeGroupType:any=''
+  mounted() {
+    this.getTree();
+  }
+
+  // 新增弹框
+  onadd() {
+    this.model = true;
+    this.btnFlag = 'add';
+    this.fileTitle = "新增部门信息";
+    this.formParams = {
+      pid: this.selectNodeId,
+    };
+  }
+
+  // 编辑
+  onedit() {
+    this.model = true;
+    this.btnFlag = "edit";
+    this.fileTitle = "编辑部门信息";
+    this.formParams.fullName=this.from.fullName
+    this.formParams.tel=this.from.tel
+    this.formParams.fax=this.from.fax
+    this.formParams.description=this.from.description
+    this.formParams.myid=this.from.myid
+  }
+  // 判断是新增还是编辑
+  async oncreate() {
+    if (this.btnFlag == "add") {
+      this.setCreate();
+    } else if (this.btnFlag == "edit") {
+      this.setEdit();
+    }
+    this.model = false;
+  }
+
+  //  新增
+  async setCreate() {
+    let url = "wjBaseServer/system/department/add";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.desc == '成功') {
+        this.$SucMessage.info("新增成功");
+        this.model = false;
+        this.getTree();
+        // location.reload()
+        this.loading = false;
+      } else {
+        this.$SucMessage.error("新增失败");
+        this.model = false;
+        this.loading = false;
+      }
+    });
+        this.getTree();
+  }
+
+  // 更新
+  async setEdit() {
+    this.loading = true;
+    let params = {
+      fullName:this.formParams.fullName,
+      tel:this.formParams.tel,
+      fax:this.formParams.fax,
+      description:this.formParams.description,
+      myid:this.formParams.myid,
+      departmentId:this.selectNodeId,
+      pid:this.ppid,
+      oldPermission:'',
+    }
+    let url = "wjBaseServer/system/department/update";
+    publicApi.postWithParam(url, params).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.info("更新成功");
+        this.model = false;
+        this.getTree();
+        this.loading = false;
+      } else {
+        this.model = false;
+        this.$SucMessage.error("更新失败");
+        this.loading = false;
+      }
+    });
+    this.getTree();
+  }
+  toggle(val: boolean) {
+    this.model = val;
+  }
+
+  // 获取树
+  async getTree() {
+    let url = 'wjBaseServer/system/department/queryTree'
+    let data = await publicApi.postNoParam(url);
+    this.treeData=[]
+    this.list=data.data
+    this.list.forEach(item => {
+      if(!item.pid){
+        this.treeData.push(item)
+      }
+      const children=this.list.filter(data=>data.pid===item.departmentId)
+      if(!children.length)return
+      item.children=children
+    });
+    return this.treeData
+  }
+  // //点击树节点
+  async getNode(data: any) {
+    this.ppid=data.pid
+    this.selectNodeId = data.departmentId;
+    this.Titles=data.fullName
+    this.from=data
+    this.fufrom=''
+    // 获取父级数据的方法
+    this.treeData.forEach((item:any)=>{
+      // 遍历子节点
+      if('children' in item){
+        item.children.forEach((item2:any)=>{
+          // 判断这个节点是不是我点击的节点
+          if(item2==data){
+            // item为父级数据，item2为当前点击数据
+            this.fufrom=item.fullName
+          }
+        })
+      }
+    })
+    // 如果fufrom为空，则判断点击的是父节点，赋值为-
+    if(this.fufrom==''){
+      this.formParams.name='-'
+    }else{
+      this.formParams.name=this.fufrom
+    }
+  }
+  handleDelete() {
+    this.$confirm(`此操作将永久删除"${this.Titles}"及其子节点, 是否继续?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }).then(() => {
+        let url = "wjBaseServer/system/department/del";
+        publicApi
+          .postWithParam( url,{ id: this.selectNodeId })
+          .then((data: any) => {
+            if (data.result == true) {
+              this.$SucMessage.info(data.desc);
+              this.getTree();
+            } else {
+              this.$SucMessage.error(data.desc);
+            }
+          })
+          .finally(() => {
+            // this.delLoading = false;
+          });
+      });
+  }
+}
+</script>
+<style lang="scss" scoped>
+@import "@/styles/commonVariables.scss";
+.module-view {
+  position: relative;
+  padding: 10px;
+  background-color: $pages-bg;
+  .bg-shadow {
+    background-color: #ffffff;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.08);
+  }
+  .top {
+    padding: 14px 15px;
+    display: flex;
+    justify-content: space-between;
+    .button-pannel {
+      display: inline-block;
+      margin-right: 16px;
+    }
+  }
+  .plan {
+    display: flex;
+    margin-top: 10px;
+    overflow:auto;
+    height: calc(100% - 70px);
+    .left {
+      padding-top: 10px;
+      padding: 10px;
+      width: 100%;
+      height: 100%;
+      .tree {
+        margin-top: 20px;
+      }
+    }
+  }
+  .delete-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+}
+</style>

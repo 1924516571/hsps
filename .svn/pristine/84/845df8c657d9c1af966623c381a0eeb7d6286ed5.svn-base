@@ -1,0 +1,371 @@
+<template>
+  <div class="contain">
+    <div class="top">
+      <div class="top-item">
+        <div class="top-item-sub">角色名称：
+          <suc-input v-model="tableParams.name" placeholder="请输入角色名称" style="width:200px"></suc-input>
+        </div>
+        <div class="top-item-sub">角色描述：
+          <suc-input v-model="tableParams.description" placeholder="请输入角色描述" style="width:200px"></suc-input>
+        </div>
+        <div class="top-item-sub">
+          <suc-button @click="onSearch" type="primary">查询</suc-button>
+        </div>
+      </div>
+      <div class="top-item">
+        <suc-button  type="primary" :debounce="800" @on-click="onadd">新增</suc-button>
+      </div>
+    </div>
+    <div class="content">
+      <table-page :columns="columns" :tableData="tableData" :pageParams="pageParams" v-loading="loading" @get-page="getPage" @get-size="getSize">
+        <template v-slot:qx="{ row }">
+          <div class="btn_fp">
+            <span @click="qx(row)">分配</span>
+          </div>
+        </template>
+        <template v-slot:zt="{ row }">
+          <el-tag size="medium"  effect="dark" :type="row.status == '1' ? 'success' : 'info'">{{row.status == '1' ? '启用' : '禁用'}}</el-tag>
+        </template>
+        <template v-slot:operation="{ row }">
+          <el-button size="mini" type="primary" @click="onedit(row)">编辑</el-button>
+          <el-button size="mini" :type="row.status == '1' ? 'info' : 'success'" @click="onclk(row)">{{row.status == '1' ? '禁用' : '启用'}}</el-button>
+          <el-button size="mini" type="danger" @click="ondelete(row)">删除</el-button>
+        </template>
+      </table-page>
+    </div>
+    <Jsgl-modal :title="modalTitle" :modal="modal" :formParams="formParams" @toggle="toggle" @on-submit="oncreate"> </Jsgl-modal>
+    <Fp-modal :title="modalTitle" :fpqxmodal="fpqxmodal" :fpParams="fpParams" @toggle="toggle1" @on-submit="oncreate"> </Fp-modal>
+    <!-- 删除弹框 -->
+    <div class="delete-view" v-show="delmodel">
+      <delete-modal @getignore="cancel" @getsave="save" v-loading="delLoading"></delete-modal>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { SearchComponent, TablePage } from "@/components";
+import { SucButton, SucInput, SucDatePicker, SucSelect } from "@suc/ui";
+import { JsglModal,FpModal, DeleteModal } from "./model";
+import { publicApi } from "@/api";
+import { url } from "../../../../../public/config";
+import { values } from "lodash";
+
+@Component({
+  components: {
+    TablePage,
+    SucButton,
+    SucInput,
+    SucDatePicker,
+    SucSelect,
+    SearchComponent,
+    JsglModal,
+    FpModal,
+    DeleteModal,
+  },
+})
+export default class GivePlan extends Vue {
+  loading: boolean = true;
+  modalTitle: string = "";
+  modal: boolean = false;
+  fpqxmodal: boolean = false;
+  delParams: object = {};
+  overParams: object = {};
+  btnFlag: any = "";
+  delmodel: boolean = false;
+  delLoading: boolean = false;
+  formParams: any = {
+    description:'',
+    enabled:'',
+    identification:'',
+    jumppagename:'',
+    name:'',
+    sort:'',
+    status:'',
+  };
+  fpParams:any={}
+  uploadHeaders: any = { Authorization: "bearer" + localStorage.getItem("refresh-token") };
+  tableParams: any = {
+    // leader: "",
+    name: "",
+    description: "",
+    pageNumber: "",
+    pageSize: "",
+    sortOrder: "asc",
+  };
+  columns: any[] = [
+    {
+      type: "index",
+      title: "序号",
+      width: "100",
+    },
+    {
+      title: "角色名称",
+      key: "name",
+    },
+    {
+      title: "标识",
+      key: "identification",
+    },
+    {
+      title: "角色描述",
+      key: "description",
+    },
+    {
+      title: "排序",
+      key: "sort",
+    },
+    {
+      title: "权限分配",
+      slot: "qx",
+    },
+    {
+      title: "状态",
+      slot: "zt",
+    },
+    {
+      title: "操作",
+      slot: "operation",
+      // width: 240,
+    },
+  ];
+  pageParams: any = {
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  };
+
+  tableData: any = [];
+  mounted() {
+    this.onpage();
+  }
+  qx(row:any){
+    this.fpqxmodal = true;
+    // this.btnFlag = "adds";
+    this.modalTitle = "权限分配";
+    this.fpParams = {};
+  }
+   onclk(row:any){
+    // this.formParams=row
+    // this.formParams.id=row.id
+    // let url = "/wjBaseServer/system/role/prohibitRole";
+    // publicApi.postWithParam(url, this.formParams).then((data: any) => {
+    //   if (data.result == true) {
+    //     this.$SucMessage.info("成功");
+    //     this.onpage();
+    //   } else {
+    //     this.$SucMessage.error("失败");
+    //   }
+    // });
+  }
+
+  async onpage() {
+    this.loading = true;
+    this.tableParams.pageNumber = this.pageParams.current;
+    this.tableParams.pageSize = this.pageParams.pageSize;
+    let url = "/wjBaseServer/system/role/roleList";
+    let data = await publicApi.postWithParam(url, this.tableParams);
+    if (data.result) {
+      this.loading = false;
+      this.tableData = data.data.rows;
+      this.pageParams.total = parseInt(data.data.total);
+      // this.$SucMessage.success("加载成功");
+    } else {
+      this.$SucMessage.error("加载失败");
+      this.tableData = [];
+    }
+  }
+  PicSuccess(file: any) {
+    if (file.result) {
+      this.$SucMessage.success("导入成功");
+    } else if (file.data.length < 0) {
+      this.$SucMessage.info("导入数据为空");
+    }
+    this.onpage();
+  }
+  onChangeSex() {}
+  onadd() {
+    this.modal = true;
+    this.btnFlag = "add";
+    this.modalTitle = "新增角色信息";
+    this.formParams = {};
+  }
+  toggle(val: any) {
+    this.modal = val;
+  }
+  toggle1(val: any) {
+    this.fpqxmodal = val;
+  }
+  oncreate() {
+    this.modal = false;
+    switch (this.btnFlag) {
+      case "add":
+        this.setCreate();
+        break;
+      case "edit":
+        this.setEdit();
+        break;
+      default:
+        break;
+    }
+  }
+  // 新增接口
+  setCreate() {
+    this.loading = true;
+    let url = "/wjBaseServer/system/role/addRole";
+    publicApi.postWithParam(url, this.formParams).then((res: any) => {
+      if (res.result) {
+        this.$SucMessage.success("新增成功");
+        this.loading = false;
+        this.onpage();
+      } else {
+        this.$SucMessage.success("新增失败");
+        this.loading = false;
+      }
+    });
+    // this.onpage();
+  }
+  // 编辑接口
+  async setEdit() {
+    this.loading = true;
+    let url = "/wjBaseServer/system/role/updateRole";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.success("更新成功");
+        this.modal = false;
+        this.onpage();
+        this.loading = false;
+      } else {
+        this.modal = false;
+        this.$SucMessage.error("更新失败");
+        this.loading = false;
+      }
+    });
+    // this.onpage();
+  }
+
+  onedit(row: any) {
+    console.log('row',row)
+    this.btnFlag = "edit";
+    this.modalTitle = "编辑角色信息";
+    this.modal = true;
+    this.formParams.description=row.description
+    // this.formParams.enabled=row.enabled
+    this.formParams.identification=row.identification
+    this.formParams.jumppagename=row.jumppagename
+    this.formParams.name=row.name
+    this.formParams.sort=row.sort
+    this.formParams.status=row.status
+    // this.formParams=row
+    this.formParams.id=row.id
+  }
+  ondelete(row: any) {
+    this.delmodel = true;
+    this.delParams = {
+      id: row.id,
+    };
+  }
+  async cancel(val: any) {
+    this.delmodel = val;
+  }
+  async save() {
+    this.delLoading = true;
+    let url = "/wjBaseServer/system/role/delRole";
+    publicApi.postWithParam(url, this.delParams).then((data: any) => {
+      if (data.result == true) {
+        this.delmodel = false;
+        this.$SucMessage.info("删除成功");
+        this.delLoading = false;
+        this.onpage();
+      } else {
+        this.$SucMessage.error("删除失败");
+        this.delLoading = false;
+      }
+    });
+  }
+  getPage(page: any) {
+    this.loading = true;
+    this.pageParams.current = page;
+    this.onpage();
+  }
+  getSize(size: any) {
+    this.loading = true;
+    this.pageParams.current = 1;
+    this.pageParams.pageSize = size;
+    this.onpage();
+  }
+  onSearch(val: any) {
+    // this.tableParams.leader = val;
+    this.onpage();
+  }
+}
+</script>
+<style lang="scss" scoped>
+.contain {
+  width: 100%;
+  height: 100%;
+  .top {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    &-item {
+      display: flex;
+      &-sub {
+        margin-right: 10px;
+      }
+      .btn {
+        margin-right: 15px;
+      }
+    }
+  }
+      .content {
+      height: calc(100% - 65px);
+      border-top: 1px solid #dde4eb;
+      .link-text {
+        color: #5397ff;
+        cursor: pointer;
+      }
+     
+    }
+    .btn_fp {
+        cursor: pointer;
+        span {
+          display: inline-block;
+          margin-right: 10px;
+          &:first-of-type {
+            color: #fff;
+            background-color: #4CAF50;
+            padding: 2px 15px;
+            border-radius: 5px;
+          }
+        }
+      }
+  .btn_xz{
+    margin-right: 40px;
+    // background-color: #fff;
+    // color: #595959;
+    // 
+    // border: 1px solid #D9D9D9;
+  }
+  .btn_jy{
+    background-color: #9E9E9E;
+    color: #fff;
+    margin-right: 7px;
+    padding: 3px 14px 2px;
+    border: none;
+  }
+  .delete-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+}
+
+</style>

@@ -1,0 +1,140 @@
+<template>
+  <div>
+    <el-dialog :append-to-body="true" :title="title" :visible.sync="fpqxmodal" :close-on-click-modal="true" :before-close="onCancel">
+      <el-form class="form" :fpmodel="fpParams" ref="jqForm" label-width="auto" size="small" :rules="rules">
+        <div>
+          <el-tree
+            ref="checkTree"
+            show-checkbox
+            :data="treeData"
+            default-expand-all
+            @node-click="getNode"
+            :expand-on-click-node="false"
+            :props="defaultProps"
+            :highlight-current='true'
+            node-key="id"
+            :current-node-key="currentNodekey"
+          ></el-tree>
+        </div>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="onCancel">取 消</el-button>
+        <el-button type="primary" @click="onOk()">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Prop, Emit, Watch } from "vue-property-decorator";
+import { SucModal, SucForm, SucFormItem, SucInput, SucSelect, SucDatePicker } from "@suc/ui";
+import { validateIdNo } from "@/utils/validator.js";
+import { infoApi, publicApi } from "@/api";
+
+@Component({
+  components: {
+    SucModal,
+    SucForm,
+    SucFormItem,
+    SucInput,
+    SucSelect,
+    SucDatePicker,
+  },
+})
+export default class ProtectHouseModal extends Vue {
+  @Prop() title!: string;
+  @Prop() fpqxmodal!: boolean;
+  rules: any = {
+    name: [{ required: true, message: "请输入角色名称", trigger: "blur" }],
+    identification: [{ required: true, message: "请输入标识", trigger: "blur" }],
+    sort: [{ required: true, message: "请输入排序", trigger: "blur" }],
+    // sex: [{ required: true, message: "请选择性别", trigger: "change" }],
+    // idCard: [{ required: true, trigger: "blur", validator: validateIdNo }],
+  };
+  @Prop({ type: Object, default: () => {} })
+  fpParams!: any; //新增接口需要的参数
+  @Emit()
+  toggle(val: boolean) {
+    return val;
+  }
+  @Emit()
+  onSubmit() {}
+  onCancel() {
+    this.toggle(false);
+    (this.$refs["jqForm"] as any).resetFields();
+  }
+  treeData: any = [];
+  defaultProps: any = {
+    children: "children",
+    label: "name",
+  };
+  currentNodekey: any = "";
+  editParentName:any = '';
+  selectNodeId: string = ""; //选中节点id
+  parentId: string = "";
+  mounted() {
+    this.getTree();
+  }
+  async getTree() {
+    let url = '/wjBaseServer/system/contact/TreeGroup'
+    let data = await publicApi.getNoParam(url);
+    this.treeData = data.data.children;
+    for (let i = 0; i < data.data.children.length; i++) {
+      this.selectNodeId=data.data.children[i].id
+    }
+    this.$nextTick(()=>{
+      (this.$refs['checkTree'] as any).setCurrentKey( data.data.children.id)
+    })
+  }
+  //点击树节点
+  async getNode(data: any) {
+    let a = (this.$refs['checkTree'] as any).getNode(data);
+    this.editParentName = a.data.name;
+    this.selectNodeId = data.id;
+    this.parentId = data.id
+    this.jiekou(data.id)
+  }
+  jiekou(data: any){
+    console.log(data)
+    // 'api/wjBaseServer/system/user/import/'+data
+  }
+  onOk() {
+    (this.$refs["jqForm"] as any).validate((valid: any) => {
+      if (valid) {
+        this.onSubmit();
+      } else {
+        return false;
+      }
+    });
+  }
+}
+</script>
+<style lang="scss" scoped>
+$deep: "::v-deep";
+::v-deep.el-dialog__wrapper {
+  .el-dialog {
+    .el-dialog__header {
+      background-color: #5993fa;
+    }
+    .el-dialog__title {
+      color: #fff;
+    }
+    .el-dialog__headerbtn .el-dialog__close {
+      color: #fff;
+    }
+    .el-dialog__body {
+      height: 570px;
+      overflow-y: auto;
+    }
+    .el-dialog__footer {
+      border-top: 1px solid #e8eaec;
+    }
+  }
+}
+.form {
+  display: flex;
+  div {
+    flex: 1;
+    margin-right: 10px;
+  }
+}
+</style>

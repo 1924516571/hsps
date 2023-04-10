@@ -1,0 +1,319 @@
+<template>
+  <!-- 避灾场所 -->
+  <div class="info">
+    <div class="info-view bg-shadow">
+      <div class="top">
+        <div class="top-item">
+          <div class="top-item-sub">
+            <search-component placeholderTxt="用户账户" @input="onSearch"> </search-component>
+          </div>
+        </div>
+        <div class="top-item">
+          <el-button type="primary"  icon="el-icon-plus" size="small"  @click="onadd()">新增</el-button>
+        </div>
+      </div>
+      <div class="content">
+        <table-page  :columns="columns" :tableData="tableData" :pageParams="pageParams" v-loading="loading" @get-page="getPage" @get-size="getSize">
+          <template v-slot:operation="{ row }">
+            <div>
+              <el-button type="primary" size="mini" @click="onedit(row)" plain>编辑</el-button>
+              <el-button type="danger" size="mini" @click="ondelete(row)" plain>删除</el-button>
+            </div>
+          </template>
+        </table-page>
+      </div>
+    </div>
+
+    <!-- 新增数据弹框 -->
+    <user-modal :title="modalTitle" :model="model" v-loading="loading" :formParams="formParams" @on-submit="oncreate" @toggle="toggle"></user-modal>
+    <!-- 删除弹框 -->
+    <div class="delete-view" v-show="delmodel">
+      <delete-modal @getignore="cancel" @getsave="save" v-loading="delLoading"></delete-modal>
+    </div>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { SucSelect, SucButton, SucInput, SucFormItem } from "@suc/ui";
+// import { SelectConfig, SelectOptions } from "@suc/ui/interfaces";
+import { SearchComponent, TablePage } from "@/components";
+import { DeleteModal, UserModal } from "../../model";
+import { infoApi, publicApi } from "@/api";
+import dayjs from "dayjs";
+@Component({
+  components: {
+    SucSelect,
+    SucButton,
+    SucInput,
+    SucFormItem,
+    SearchComponent,
+    TablePage,
+    DeleteModal,
+    UserModal,
+  },
+})
+export default class Enterprise extends Vue {
+  olMap = this.$getMapConfig();
+  areaOptions: any = [];
+  modalTitle: string = ""; //弹窗标题
+  loading: boolean = true;
+  delLoading: boolean = false;
+  btnFlag: string = ""; //区分编辑和新增
+  tableData: any[] = [];
+  organizeData: any = []; //机构性质
+
+  formParams: any = {};
+  //   删
+  delmodel: boolean = false;
+  delParams: any = {}; //删除的参数
+  ondelete(row: any) {
+    this.delmodel = true;
+    this.delParams = {
+         id:row.id
+    };
+  }
+  cancel(val: any) {
+    this.delmodel = val;
+  }
+  async save() {
+    this.delLoading = true;
+    let url = "wjBaseServer/system/user/delUserInfo";
+    publicApi.postWithParamJson(url,this.delParams).then((data: any) => {
+      if (data.result == true) {
+        this.delmodel = false;
+        this.$SucMessage.info("删除成功");
+        this.onpage();
+        this.delLoading = false;
+      } else {
+        this.delLoading = false;
+        this.$SucMessage.error("删除失败");
+      }
+    });
+  }
+
+  // 新增弹框
+  onadd() {
+    this.model = true;
+    this.btnFlag = "add";
+    this.modalTitle = "新增";
+    this.formParams = {};
+  }
+
+  // 判断是新增还是编辑
+  async oncreate() {
+    if (this.btnFlag == "add") {
+      this.setCreate();
+    } else if (this.btnFlag == "edit") {
+      this.setEdit();
+    }
+    this.model = false;
+  }
+  //  新增
+  async setCreate() {
+    this.loading = true;
+    let url = "wjBaseServer/system/user/addUserInfo";
+    publicApi.postWithParamJson(url,this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.info("新增成功");
+        this.model = false;
+        this.onpage();
+        this.loading = false;
+      } else {
+        this.$SucMessage.error("新增失败");
+        this.model = false;
+        this.loading = false;
+      }
+    });
+    this.onpage();
+  }
+  // 更新
+  async setEdit() {
+    this.loading = true;
+    let url = "wjBaseServer/system/user/updateUserInfo";
+    publicApi.postWithParamJson(url,this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.info("更新成功");
+        this.model = false;
+        this.onpage();
+        this.loading = false;
+      } else {
+        this.model = false;
+        this.$SucMessage.error(data.desc);
+        this.loading = false;
+      }
+    });
+    this.onpage();
+  }
+  model: boolean = false;
+  toggle(val: boolean) {
+    this.model = val;
+  }
+  // 编辑
+  onedit(row: any) {
+    this.model = true;
+    this.formParams = {};
+    this.btnFlag = "edit";
+    this.modalTitle = "编辑";
+    this.editInfo(row);
+  }
+  newString: any = "";
+
+  // 详情
+  async editInfo(data: any) {
+      data.status = +data.status
+      data.sex = +data.sex
+      this.formParams = data
+
+  }
+  //   查
+  columns: any[] = [
+    {
+      type: "index",
+      title: "序号",
+      width: 150,
+    },
+    {
+      title: "账号",
+      key: "username",
+    },
+    {
+      title: "姓名",
+      key: "realname",
+    },
+    {
+      title: "行政区域",
+      key: "areaCode",
+    },
+
+    {
+      title: "角色",
+      key: "roleName",
+    },
+    {
+      title: "状态",
+      key: "status",
+    },
+    {
+      title: "最近登录IP",
+      key: "ip",
+    },
+    {
+      title: "最近登录地",
+      key: "area",
+    },
+    // {
+    //   title: "创建时间",
+    //   key: "createDate",
+    //   formatter:(row:any,item:any)=>{
+    //     return this.$utils.dateFormat(row.createDate, "yyyy-MM-dd")
+    //   }
+    // },
+    {
+      title: "操作",
+      slot: "operation",
+    },
+  ];
+
+  pageParams: any = {
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  };
+  pageYjParams: any = {
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  };
+  userParams: any = {
+    pageNum: "",
+    pageSize: "",
+    username: "", //场所名称
+  };
+
+  mounted() {
+    this.onpage(); //获取页面信息
+  }
+  // 抢险机构性质
+
+  // 列表
+  async onpage() {
+    this.userParams.pageNum = this.pageParams.current; //当前页码
+    this.userParams.pageSize = this.pageParams.pageSize; //一页多少条
+    let url = "wjBaseServer/system/user/userList";
+    let data = await publicApi.postWithParam(url, this.userParams);
+    if (data.result == true) {
+      if (data.data.rows.length > 0) {
+        data.data.rows.forEach((e: any) => {
+          e.createtime = dayjs(Number(e.createtime)).format("YYYY-MM-DD");
+        });
+      }
+      this.tableData = data.data.rows;
+      this.pageParams.total = parseInt(data.data.total);
+    } else {
+      this.tableData = [];
+    }
+
+    this.loading = false;
+  }
+  getPage(page: any) {
+    this.loading = true;
+    this.pageParams.current = page;
+    this.onpage();
+  }
+  getSize(size: any) {
+    this.loading = true;
+    this.pageParams.current = 1;
+    this.pageParams.pageSize = size;
+    this.onpage();
+  }
+  //  点击查询拿到的值
+  onSearch(val: string) {
+    this.loading = true;
+    this.pageParams.current = 1;
+    this.userParams.username = val;
+    this.onpage();
+  }
+}
+</script>
+<style lang="scss" scoped>
+.info {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  position: relative;
+  &-view {
+    height: 100%;
+    .top {
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      &-item {
+        display: flex;
+        &-sub {
+          margin-right: 10px;
+        }
+      }
+    }
+    .content {
+      height: calc(100% - 65px);
+      border-top: 1px solid #dde4eb;
+      .link-text {
+        color: #5397ff;
+        cursor: pointer;
+      }
+    }
+  }
+  .delete-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+}
+</style>

@@ -1,0 +1,50 @@
+@import './module/index';
+@import './common.scss';
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html,
+body {
+    height: 100%;
+    font-family: Roboto, "Helvetica Neue", Helvetica, Tahoma, Arial, "PingFang SC", "Microsoft YaHei";
+}
+
+.main_view {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.header_bar {
+    height: 50px;
+    background: url('../assets/navBg.png') repeat;
+    // background: #247ad6;
+
+    >ul {
+        float: right;
+        line-height: 50px;
+        background: transparent;
+        height: 100%;
+    }
+    .ivu-menu-item-active{
+        background-color: rgba(0,0,0,0.3);
+    }
+}
+
+.app_main {
+    background-color: white;
+    height: calc(100% - 50px);
+}
+
+.ivu-select-single .ivu-select-input{
+    width: 100%;
+    font-size: 15px;
+}
+
+
+// .el-cascader-menu__wrap.el-scrollbar__wrap{
+//     height: 400px;
+// }

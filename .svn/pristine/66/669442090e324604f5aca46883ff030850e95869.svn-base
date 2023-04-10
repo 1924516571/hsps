@@ -1,0 +1,408 @@
+<template>
+  <!-- 资料库 -->
+  <div class="module-view">
+    <div class="bg-shadow top">
+      <div>
+        <el-button icon="el-icon-plus" size="small" type="primary" @click="onadd()">
+          新增
+        </el-button>
+        <el-button icon="el-icon-plus" size="small" type="primary" @click="onedit()">
+          编辑
+        </el-button>
+        <el-button icon="el-icon-delete" size="small" type="danger" @click="handleDelete()">
+          删除
+        </el-button>
+      </div>
+      <div></div>
+    </div>
+    <div class="plan">
+      <div class="bg-shadow left">
+          <div class="tree-title">
+            <span>部门名称</span>
+            <span>部门编码</span>
+            <span>电话</span>
+            <span>传真</span>
+            <span>部门描述</span>
+          </div>
+          <el-tree
+            ref="checkTree"
+            :data="treeData"
+            default-expand-all
+            @node-click="getNode"
+            :expand-on-click-node="false"
+            :props="defaultProps"
+            :highlight-current='true'
+            node-key="id"
+            :current-node-key="currentNodekey"
+          >
+          <span class="custom-tree-node" slot-scope="{ node, data }">
+            <!-- <span class="custom-tree-name">{{ data. fullName}}</span> -->
+            <span>{{ data. fullName}}</span>
+              <span class="custom-tree-nodes">
+                <span>{{ data.myid }}</span>
+                <span>{{ data.tel }}</span>
+                <span>{{ data.fax }}</span>
+                <span>{{ data.description }}</span>
+              </span>
+            </span>
+        </el-tree>
+       
+      </div>
+      <!--  -->
+    </div>
+    <Bmgl-modal :title="fileTitle" :model="model" :formParams="formParams" @toggle="toggle" @on-submit="oncreate"></Bmgl-modal>
+    
+     <!-- 删除弹框 -->
+    <div class="delete-view" v-show="delmodel">
+      <delete-modal
+        @getignore="cancel"
+        @getsave="save"
+        v-loading="delLoading"
+      ></delete-modal>
+    </div>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { SucButton, SucTree, SucModal, SucForm, SucFormItem, SucSelect, SucInput } from "@suc/ui";
+import { BmglModal, DeleteModal } from "./model";
+import { SearchComponent, TablePage } from "@/components";
+import { infoApi, publicApi } from "@/api";
+import fileIcon from "@/constants/fileIcon";
+@Component({
+  components: {
+    SucButton,
+    SucTree,
+    SucModal,
+    SucForm,
+    SucFormItem,
+    SucSelect,
+    SucInput,
+    TablePage,
+    SearchComponent,
+    BmglModal,
+    DeleteModal
+  },
+})
+export default class TransferPlan extends Vue {
+  treeData: any = [];
+  tableData: any[] = [];
+  fileIcon: any = fileIcon;
+  delLoading: boolean = false;
+  model: boolean = false;
+  modalTitle: any = '';
+  fileTitle: any = '';
+  delmodel: boolean = false;
+  delParams: any = {};
+  currentNodekey: any = "";
+  parentId: string = "";
+  btnFlag: string = '';
+  rightTitle: any = "";
+  editParentName:any = '';
+  tag: any = "1";
+  loading: boolean = false;
+  firstEdit: boolean = true; //编辑时候提交按钮判断第一级还是第二级
+  fileList: any = [];
+  list:Array<any>=[];
+  formParams: any = {
+    name:''
+  };
+  pageParams: any = {
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  };
+  columns: any[] = [
+    {
+      type: "index",
+      title: "序号",
+    },
+    {
+      title: "文件名称",
+      key: "basename",
+    },
+    {
+      title: "文件大小",
+      key: "fsize",
+    },
+    {
+      title: "创建时间",
+      key: "createdate",
+      formatter:(e:any)=>{
+        return this.$utils.dateFormat(new Date(Number(e.createdate)), "yyyy-MM-dd HH:mm:ss")
+      }
+    },
+    {
+      title: "操作",
+      slot: "operation",
+      width: 90,
+    },
+  ];
+  fileTableParams:any = {};
+  selectNodeId: string = ""; //选中节点id
+  searchParams: string = "";
+  defaultProps: any = {
+    children: "children",
+    label: "name",
+  };
+
+  mounted() {
+    this.getTree();
+  }
+
+  // 新增弹框
+  onadd() {
+    this.model = true;
+    this.btnFlag = 'add';
+    this.fileTitle = "新增部门信息";
+    this.formParams = {
+      pid: this.selectNodeId,
+    };
+  }
+
+  // 编辑
+  onedit() {
+    this.model = true;
+    this.btnFlag = "edit";
+    this.modalTitle = "编辑部门信息";
+    this.formParams = {
+      name:this.rightTitle,
+      parentName:this.editParentName
+    };
+  }
+
+  // 判断是新增还是编辑
+  async oncreate() {
+    if (this.btnFlag == "add") {
+      this.setCreate();
+    } else if (this.btnFlag == "edit") {
+      this.setEdit();
+    }
+    this.model = false;
+  }
+
+  //  新增
+  async setCreate() {
+    let url = "wjBaseServer/system/department/add";
+    publicApi.postWithParam(url, this.formParams).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.info("新增成功");
+        this.model = false;
+        this.getTree();
+        this.loading = false;
+      } else {
+        this.$SucMessage.error("新增失败");
+        this.model = false;
+        this.loading = false;
+      }
+    });
+        this.getTree();
+  }
+
+  // 更新
+  async setEdit() {
+    this.loading = true;
+    let params = {
+      name:this.formParams.name,
+      parentId:this.parentId,
+      id:this.selectNodeId,
+    }
+    let url = "wjBaseServer/fileNode/fileupload/Update";
+    publicApi.postWithParam(url, params).then((data: any) => {
+      if (data.result == true) {
+        this.$SucMessage.info("更新成功");
+        this.model = false;
+        this.getTree();
+        this.loading = false;
+      } else {
+        this.model = false;
+        this.$SucMessage.error("更新失败");
+        this.loading = false;
+      }
+    });
+    this.getTree();
+  }
+
+  async save() {
+    this.delLoading = true;
+    let url = "wjBaseServer/fileNode/fileupload/delFile";
+    await publicApi.postWithParam(url, this.delParams).then((data: any) => {
+      if (data.result == true) {
+        this.delmodel = false;
+        this.$SucMessage.info("删除成功");
+        this.delLoading = false;
+      } else {
+        this.delLoading = false;
+        this.$SucMessage.error("删除失败");
+      }
+    });
+  }
+
+  cancel(val: any) {
+    this.delmodel = val;
+  }
+
+  toggle(val: boolean) {
+    this.model = val;
+  }
+
+  // 获取树
+  async getTree() {
+    let url = 'wjBaseServer/system/department/queryTree'
+    let data = await publicApi.postNoParam(url);
+    this.treeData=[]
+    this.list=data.data
+    this.list.forEach(item => {
+      if(!item.pid){
+        this.treeData.push(item)
+      }
+      const children=this.list.filter(data=>data.pid===item.departmentId)
+      if(!children.length)return
+      item.children=children
+    });
+    return this.treeData
+  }
+
+  onSearch(val: string) {
+    this.searchParams = val;
+    this.getTree();
+  }
+
+  ondelete(row: any) {
+    this.delmodel = true;
+    this.delParams = {
+      id: row.id,
+    };
+  }
+
+  //点击树节点
+  async getNode(data: any) {
+    // let a = (this.$refs['checkTree'] as any).getNode(data);
+    // this.editParentName = a.parent.data.name;
+    this.selectNodeId = data.pid;
+  console.log(data)
+  }
+
+  handleDelete() {
+    if (this.selectNodeId == '1') {
+      this.$SucMessage.warning("根目录无法删除!");
+    } else {
+      this.$confirm(`此操作将永久删除"${this.rightTitle}"及其子节点, 是否继续?`, "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        }).then(() => {
+          let url = "wjBaseServer/fileNode/fileupload/delNode";
+          publicApi
+            .postWithParam( url,{ id: this.selectNodeId })
+            .then((data: any) => {
+              if (data.result == true) {
+                this.$SucMessage.info(data.desc);
+                this.getTree();
+              } else {
+                this.$SucMessage.error(data.desc);
+              }
+            })
+            .finally(() => {
+              // this.delLoading = false;
+            });
+        });
+    }
+  }
+}
+</script>
+<style lang="scss" scoped>
+@import "@/styles/commonVariables.scss";
+.tree-title{
+  font-size: 14px;
+  background-color: #FAFAFA;
+  padding: 10px 0;
+  span {
+    display: inline-block;
+    margin-left: 20px;
+    &:first-of-type {
+      padding-left: 10px;
+    }
+    &:nth-of-type(2) {
+      margin-left: 360px;
+    }
+    &:nth-of-type(3) {
+      padding-left: 200px;
+    }
+    &:nth-of-type(4) {
+      padding-left: 160px;
+    }
+    &:last-of-type {
+      margin-left: 200px;
+
+    }
+  }
+}
+.custom-tree-node {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content:space-between;
+    font-size: 14px;
+    padding-right: 450px;
+  }
+  // .custom-tree-name {
+  //   flex: 0.5;
+  //   display: flex;
+  //   align-items: center;
+  //   justify-content:space-between;
+  //   font-size: 14px;
+  // }
+  .custom-tree-nodes {
+    flex: 0.5;
+    display: flex;
+    // align-items: center;
+    justify-content:space-between;
+    // font-size: 14px;
+    // padding-right: 400px;
+  }
+.module-view {
+  position: relative;
+  padding: 10px;
+  background-color: $pages-bg;
+  .bg-shadow {
+    background-color: #ffffff;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.08);
+  }
+  .top {
+    padding: 14px 15px;
+    display: flex;
+    justify-content: space-between;
+    .button-pannel {
+      display: inline-block;
+      margin-right: 16px;
+    }
+  }
+  .plan {
+    display: flex;
+    margin-top: 10px;
+    height: calc(100% - 70px);
+    .left {
+      padding-top: 10px;
+      padding: 10px;
+      width: 100%;
+      height: 100%;
+      .tree {
+        margin-top: 20px;
+      }
+    }
+  }
+  .delete-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+}
+</style>

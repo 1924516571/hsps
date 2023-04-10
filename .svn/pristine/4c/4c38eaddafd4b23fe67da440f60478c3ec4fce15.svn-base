@@ -1,0 +1,158 @@
+<template>
+  <div>
+    <div>
+      <el-dialog :append-to-body="true" :title="title" :visible.sync="fpqxmodal" :close-on-click-modal="true" :before-close="onCancel">
+        <el-form :model="fpParams" ref="marketForm" label-width="auto" size="small">
+          <div>
+            <el-tree
+              ref="checkTree"
+              show-checkbox
+              :data="treeData"
+              default-expand-all
+              :expand-on-click-node="false"
+              @check-change="getNode"
+              check-strictly="true"
+              :props="defaultProps"
+              :highlight-current='true'
+              node-key="id"
+              :current-node-key="currentNodekey"
+            ></el-tree>
+          </div>
+        </el-form>
+        <div slot="footer">
+          <el-button @click="onCancel">取 消</el-button>
+          <el-button type="primary" @click="onOk()">确 定</el-button>
+        </div>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+<script lang="ts">
+import { Vue, Component, Prop, Emit, Watch } from "vue-property-decorator";
+import { SucModal, SucForm, SucFormItem, SucInput, SucSelect, SucDatePicker, SucButton } from "@suc/ui";
+import { SearchComponent, TablePage } from "@/components";
+import { publicApi } from "@/api";
+@Component({
+  components: {
+    SucModal,
+    SucForm,
+    SucFormItem,
+    SucInput,
+    SucSelect,
+    SucDatePicker,
+    TablePage,
+    SucButton,
+  },
+})
+export default class MarketHouseModal extends Vue {
+  @Prop() title!: string;
+  @Prop() fpqxmodal!: boolean;
+  @Prop({ type: Object, default: () => {} })
+  @Prop() fpParams!: any; //新增接口需要的参数
+  @Emit()
+  toggle(val: boolean) {
+    return val;
+  }
+  @Emit()
+  onSubmit() {}
+  onCancel() {
+    this.toggle(false);
+    (this.$refs["marketForm"] as any).resetFields();
+  }
+  @Watch("fpParams")
+  getid(){
+    if(this.fpParams.id!=''){
+      this.getTree()
+    }
+  }
+  treeData: any = [];
+  defaultProps: any = {
+    children: "children",
+    label: "name",
+  };
+  list:Array<any>=[];
+  currentNodekey: any = "";
+  selectNodeId: string = ""; //选中节点id
+  parentId: string = "";
+  fpParam:any={
+    roleId:'',
+  }
+  // cs(){
+  //   this.treeData=this.fpParams
+  // }
+  // create(){
+  //   this.getTree()
+  // }
+   async getTree() {
+    this.treeData=[]
+    this.fpParam.roleId=this.fpParams.id
+    let url = '/wjBaseServer/system/menu/zTree'
+    let data = await publicApi.postWithParam(url,this.fpParam);
+    this.list=data.data
+    console.log(this.list)
+    //处理平面数据转为tree结构
+    this.list.forEach(item => {
+      if(!item.pId){
+        this.treeData.push(item)
+      }
+      const children=this.list.filter(data=>data.pId===item.id)
+      if(!children.length)return
+      item.children=children
+    });
+    return this.treeData
+  }
+  
+  //点击树节点
+  async getNode(data: any) {
+    let a = (this.$refs['checkTree'] as any).getNode(data);
+    console.log(data.id)
+    this.selectNodeId = data.id;
+    this.parentId = data.id
+    // this.jiekou(data.id)
+  }
+  jiekou(data: any){
+    // console.log(data)
+    // 'api/wjBaseServer/system/user/import/'+data
+  }
+  onOk() {
+    (this.$refs["marketForm"] as any).validate((valid: any) => {
+      if (valid) {
+        console.log(valid)
+        this.onSubmit();
+      } else {
+        return false;
+      }
+    });
+  }
+}
+</script>
+<style lang="scss" scoped>
+$deep: "::v-deep";
+::v-deep.el-dialog__wrapper {
+  .el-dialog {
+    .el-dialog__header {
+      background-color: #5993fa;
+    }
+    .el-dialog__title {
+      color: #fff;
+    }
+    .el-dialog__headerbtn .el-dialog__close {
+      color: #fff;
+    }
+    .el-dialog__body {
+      height: 570px;
+      overflow-y: auto;
+    }
+    .el-dialog__footer {
+      border-top: 1px solid #e8eaec;
+    }
+  }
+}
+.form {
+  display: flex;
+  div {
+    flex: 1;
+    margin-right: 10px;
+  }
+}
+</style>

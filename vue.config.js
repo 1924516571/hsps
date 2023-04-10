@@ -1,0 +1,158 @@
+const path = require("path");
+const webpack = require("webpack");
+const WebpackNotifierPlugin = require("webpack-notifier");
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+const CompressionWebpackPlugin = require('compression-webpack-plugin');
+const productionGzipExtensions = ['js', 'css', 'json'];
+const tsImportPluginFactory = require('ts-import-plugin');
+const HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
+require('events').EventEmitter.defaultMaxListeners = 0; //解决node内存溢出问题
+
+process.env.VUE_APP_TIME = new Date().valueOf();
+
+function resolve(dir) {
+    return path.join(__dirname, dir);
+}
+
+const { url }  = require('./public/config.js')
+//  const proxyurl = "http://192.168.1.164:8088";
+//  const proxyurl = "http://222.185.127.172:8088";
+//  const proxyurl = "http://192.168.6.98:8088";
+const proxyurl = url;
+    // const proxyurl = "http://9fibnf.natappfree.cc";
+    module.exports = {
+    // lintOnSave: true,  是否在保存的时候使用eslint-loader 检查，检查出错时触发编译失败
+    publicPath: "./",
+    productionSourceMap: false,
+    transpileDependencies: [
+        /authox-vue/gi,
+        'vue-echarts',
+        'resize-detector',
+        '@suc/module',
+        /monch/gi,
+        /iview.src.(?!utils.date\.js\b).+js$/
+    ],
+    chainWebpack: config => {
+        // config.resolve.alias.set("@", resolve("src"));
+        config.performance.set("hints", false)
+    },
+    css: {
+        loaderOptions: {
+            postcss: {
+                plugins: [
+                    require('autoprefixer')(),
+                ]
+            }
+        }
+    },
+
+    devServer: {
+        disableHostCheck:true,
+        hot:true,//自动保存
+        open : true,//自动启动
+        proxy: {
+            "/wjAuthServer/":{
+                target: proxyurl, 
+                changeOrigin: true,
+                pathRewrite: {
+                    // '^/wjServer':'/api/wjServer'
+                }
+            },
+            "/wjServer/":{
+                target: proxyurl, 
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/wjBaseServer/":{
+                target: proxyurl, 
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/api/": {
+                target: proxyurl,
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/xckh/":{
+                target: url, 
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            // "/weather/": {
+            //     target: proxyurl,
+            //     changeOrigin: true,
+            //     pathRewrite: {}
+            // },
+            "/base/": {
+                target: proxyurl,
+                changeOrigin: true,
+                pathRewrite: {
+                    // "^/base": ""
+                }
+            },
+            "/gwc/": {
+                target: proxyurl,
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/ows": {
+                target: "http://49.74.219.154:48083",
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/zabbix/": {
+                target: proxyurl,
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+            "/rest/": {
+                target: "http://www.nmc.cn",
+                changeOrigin: true,
+                pathRewrite: {}
+            },
+        }
+    },
+    configureWebpack: {
+        // devtool: false,
+        optimization: {
+            splitChunks: {
+                chunks: 'async',
+                minSize: 1000,
+                minChunks: 1,
+                maxAsyncRequests: 10,
+                maxInitialRequests: 5,
+                automaticNameDelimiter: '~',
+                name: true,
+                cacheGroups: {
+                    vendors: {
+                        test: /[\\/]node_modules[\\/]/,
+                        priority: -10,
+                    },
+                    default: {
+                        minChunks: 1,
+                        priority: -20,
+                        reuseExistingChunk: true,
+                    },
+                    dll: {
+                        test: /[\\/]node_modules[\\/](vue|vue-router|vuex|iview)[\\/]/,
+                        name: 'dll',
+                        chunks: 'all',
+                    },
+                },
+            },
+        },
+        plugins: [
+            // new HardSourceWebpackPlugin(),
+            new CompressionWebpackPlugin({
+                test: new RegExp('\\.(' + productionGzipExtensions.join('|') + ')$'),
+                threshold: 10240,  //对超过10k数据进行压缩
+                deleteOriginalAssets: false   //是否删除原文件,一般是不删除的
+            }),
+            new WebpackNotifierPlugin({ alwaysNotify: true }),
+            new webpack.HotModuleReplacementPlugin()
+            // new BundleAnalyzerPlugin({
+            //     analyzerPort: 6543
+            // })
+        ]
+    },
+};

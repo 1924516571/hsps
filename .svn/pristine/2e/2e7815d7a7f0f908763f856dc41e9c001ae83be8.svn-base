@@ -1,0 +1,764 @@
+<template>
+  <div class="login_body">
+    <div class="login-top">
+      <div>
+        <!-- <img src="../assets/login/wjlogo.png" alt="" /> -->
+        惠山排水后台管理系统
+      </div>
+    </div>
+    <div class="login_main">
+      <!-- <div class="login_main_item">
+        <img src="../assets/login/picNoWord.png" alt="图片"/>
+        <p>武进区</p>
+        <p>水务一体化平台</p>
+      </div> -->
+      <div class="login_main_item">
+        <div class="login_main_title">
+          <span class="login-type" :class="{ active: isActive }" @click="onClickUser">用户登录</span>
+          <span class="login-type" :class="{ phoneActive: isPhoneActive }" @click="onClickPhone">手机号登录</span>
+        </div>
+        <!--admin 账号 -->
+        <div class="login_main_list" v-show="userPage == true">
+          <Form ref="loginForm" :model="loginForm" :rules="ruleForm" :label-width="0">
+            <FormItem prop="userName">
+              <Input type="text" v-model="loginForm.userName" placeholder="用户名" size="large" @keyup.enter.native="loginSubmit('loginForm')">
+                <Icon type="ios-person-outline" slot="prepend"></Icon>
+              </Input>
+            </FormItem>
+            <FormItem prop="password">
+              <Input type="password" v-model="loginForm.password" placeholder="密码" size="large" @keyup.enter.native="loginSubmit('loginForm')" style="margin: 20px 0">
+                <Icon type="ios-lock-outline" slot="prepend"></Icon>
+              </Input>
+            </FormItem>
+            <FormItem prop="codeValue">
+              <Input class="yanzhengma" type="text" v-model="loginForm.codeValue" placeholder="验证码" size="large" @keyup.enter.native="loginSubmit('loginForm')"> </Input>
+              <span style="display:inline-block;cursor: pointer;" @click="refreshCode">
+                <identify :identifyCode="identifyCode"></identify>
+              </span>
+            </FormItem>
+
+            <FormItem>
+              <Button type="primary" @click.prevent="loginSubmit('loginForm')" size="large" long>登 录 </Button>
+            </FormItem>
+          </Form>
+          <!-- <div>
+            <span>还未注册? 请先</span>
+            <router-link to="/register">注册</router-link>
+          </div>
+          <img src="../assets/app.png" style="width: 100px" /> -->
+        </div>
+        <!-- 手机号登录 -->
+        <div>
+          <div class="login_main_list" v-show="userPage == false">
+            <Form ref="formValidate" :model="phoneLoginForm" :rules="phoneRuleForm" :label-width="0">
+              <FormItem prop="tel">
+                <Input
+                  type="tel"
+                  :maxlength="11"
+                  clearable
+                  autocomplete="off"
+                  v-model="phoneLoginForm.tel"
+                  placeholder="请输入手机号"
+                  size="large"
+                  @keyup.enter.native="phoneLoginSubmit('formValidate')"
+                >
+                  <template #prepend>
+                    <div style="color:#7A8599">
+                      中国+86
+                    </div>
+                  </template>
+                </Input>
+              </FormItem>
+              <FormItem class="sliderContainer">
+                <SliderCheck :successFun="handleSuccessFun" :errorFun="handleErrorFun"></SliderCheck>
+                <div v-if="isDisplayTs" class="tsStyle">请拖动滑块至右侧</div>
+              </FormItem>
+              <FormItem prop="code">
+                <span style="width:70%;display:inline-block;">
+                  <Input type="tel" v-model="phoneLoginForm.code" clearable autocomplete="off" placeholder="请输入短信验证码" size="large"> </Input>
+                </span>
+                <span style="width:30%;display:inline-block;padding-left:5%;">
+                  <span v-show="show"><Button type="primary" @click="getTelCode">获取验证码</Button></span>
+                  <span v-show="!show">
+                    <Button disabled>{{ count }}秒后重发</Button>
+                  </span>
+                </span>
+              </FormItem>
+              <FormItem>
+                <Button type="primary" @click.prevent="phoneLoginSubmit('formValidate')" size="large" long>登 录 </Button>
+              </FormItem>
+            </Form>
+          </div>
+        </div>
+      </div>
+    </div>
+<div class="qrcode" ref="qrCodeUrl" v-cloak></div>
+    <!-- <span class="apptext">(手机app扫码下载)</span> -->  </div>
+</template>
+
+<script lang="ts">
+import qs from "qs";
+import { Vue, Component, Watch } from "vue-property-decorator";
+import { FormItem, Icon, Form, Input, Button } from "iview";
+import Axios from "axios";
+import store from "@/stores";
+import QRCode from "qrcodejs2";
+import { Identify, SliderCheck } from "@/components";
+import LayerGroup from "ol/layer/Group";
+import { publicApi } from "@/api";
+
+const validateName = (rule: any, value: string, callback: Function) => {
+  if (value === "") {
+    callback(new Error("用户名不能为空"));
+  } else {
+    callback();
+  }
+};
+const validatePass = (rule: any, value: string, callback: Function) => {
+  if (value === "") {
+    callback(new Error("密码不能为空"));
+  } else {
+    callback();
+  }
+};
+const validateCode = (rule: any, value: string, callback: Function) => {
+  if (value === "") {
+    callback(new Error("验证码不能为空"));
+  } else {
+    callback();
+  }
+};
+
+const validateTel = (rule: any, value: string, callback: Function) => {
+  if (!value) {
+    return callback(new Error("手机号不能为空"));
+  } else {
+    const reg = /^1[3|4|5|7|8][0-9]\d{8}$/;
+    if (reg.test(value)) {
+      callback();
+    } else {
+      return callback(new Error("请输入正确的手机号"));
+    }
+  }
+};
+const validatePhoneCode = (rule: any, value: string, callback: Function) => {
+  if (value === "") {
+    callback(new Error("请输入验证码"));
+  } else {
+    callback();
+  }
+};
+@Component({
+  components: {
+    FormItem,
+    Icon,
+    Form,
+    Input,
+    Button,
+    Identify,
+    SliderCheck,
+  },
+})
+export default class login extends Vue {
+  isActive: boolean = true;
+  isPhoneActive: boolean = false;
+  show: boolean = true;
+  timer: any = null;
+  count: any = "";
+  userPage: boolean = true;
+  codeImg = "";
+  loginForm = {
+    userName: "",
+    codeValue: "",
+    password: "",
+    appid: "EcoZtyGVp3xfwFe5",
+    appsecret: "RWNvWnR5R1ZwM3hmd0ZlNTIwMjIwNzExMTUxMzA5",
+    scope: "all",
+  };
+  phoneLoginForm = {
+    tel: "",
+    code: "",
+    appid: "EcoZtyGVp3xfwFe5",
+    appsecret: "RWNvWnR5R1ZwM3hmd0ZlNTIwMjIwNzExMTUxMzA5",
+    scope: "all",
+  };
+  // --admin登录验证
+  ruleForm = {
+    userName: [
+      {
+        validator: validateName,
+        trigger: "blur",
+      },
+    ],
+    password: [
+      {
+        validator: validatePass,
+        trigger: "blur",
+      },
+    ],
+    codeValue: [
+      {
+        validator: validateCode,
+        trigger: "blur",
+      },
+    ],
+  };
+  //手机号登录验证
+  phoneRuleForm = {
+    tel: [
+      {
+        validator: validateTel,
+        trigger: "blur",
+      },
+    ],
+    code: [
+      {
+        validator: validatePhoneCode,
+        trigger: "blur",
+      },
+    ],
+  };
+  // 图片验证码
+  identifyCode = "";
+  // 验证码规则
+  identifyCodes = "3456789abcdefhijkmnprstuvwxyz";
+  refreshCode() {
+    this.identifyCode = "";
+    this.makeCode(this.identifyCodes, 4);
+  }
+  makeCode(o: any, l: any) {
+    for (let i = 0; i < l; i++) {
+      this.identifyCode += this.identifyCodes[Math.floor(Math.random() * (this.identifyCodes.length - 0) + 0)];
+    }
+  }
+
+  created() {
+    //this.getCodeImg();
+  }
+
+  getCodeImg() {
+    this.$http
+      .get("/rest/authox/checkCode?size=120*36")
+      .then((res) => {
+        this.codeImg = "data:image/gif;base64," + res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+  mounted() {
+    // this.creatQrCode();
+    // this.getDownUrl(); //二维码
+    this.refreshCode();
+  }
+  // 获取下载地址
+  getDownUrl() {
+    let that = this;
+    that.$base
+      .get("wjServer/app/version/getLastVersion")
+      .then((res: any) => {
+        if (res.status === 200) {
+          let downloadurl = res.data.data.downloadurl;
+          this.creatQrCode(downloadurl);
+        }
+      })
+      .catch((err) => {
+        this.$SucMessage.error("获取二维码失败");
+      });
+  }
+  //生成二维码
+  creatQrCode(text: any) {
+    var qrcode = new QRCode(this.$refs.qrCodeUrl, {
+      // text: "http://222.185.127.172:8088/api/wjBaseServer/minio/file/downloadModel?ileName=wjwater-release-1.0.0-202208291513.apk", // 需要转换为二维码的内容
+      text,
+      width: 150,
+      height: 150,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+  }
+  //  admin登录
+  loginSubmit(name: string) {
+    if (this.loginForm.codeValue !== this.identifyCode) {
+      this.$SucMessage.error("验证码错误!");
+      this.refreshCode(); //重置验证码
+    } else {
+      localStorage.removeItem("refresh-token");
+      let that = this;
+      const form: any = that.$refs[name];
+      form.validate((valid: any) => {
+        if (valid) {
+          that
+            .$http({
+              url: "wjAuthServer/authentication/pwd",
+              method: "post",
+              data: qs.stringify({
+                //关键方法  qs.stringify({}) 将对象序列化成字符串，以'&' 拼接username=admin&password=123456                qs.parse() 字符串转换成对象
+                username: this.loginForm.userName,
+                password: this.loginForm.password,
+                // checkCode: this.loginForm.codeValue,
+                appid: this.loginForm.appid,
+                appsecret: this.loginForm.appsecret,
+                scope: this.loginForm.scope,
+                // withToken: true,
+              }),
+              // headers: {
+              //   'Content-Type': 'application/x-www-form-urlencoded'
+              // }
+            })
+            .then((res) => {
+              let tk = res.data.data["access_token"];
+              localStorage.setItem("refresh-token", tk);
+              that.$http.defaults.headers["Authorization"] = "bearer " + tk;
+              Axios.defaults.headers["Authorization"] = "bearer " + tk;
+
+              // if (this.$route.query.redirect) {
+              //   this.$router.push(<string>this.$route.query.redirect)
+              // } else {
+              //   this.$router.push('/')
+              // }
+
+              that.$http
+                .get("/wjAuthServer/authentication/user/infoByToken")
+                .then((res) => {
+                  //一般为获取用户信息，error则未登录
+                  if (res.status === 200) {
+                    // this.getUserInfo(res.data);
+                    // store.commit("getUserInfo", res.data);
+                    store.commit("getUserInfo", res.data.data);
+                    const uid = res.data.data.id;
+                    const roleName = res.data.data.roleName;
+                    const departmentId = res.data.data.departmentId; //部门id
+                    const departmentName = res.data.data.departmentName; //部门 名字
+                    const reporter = res.data.data.realname; //上报人
+                    const areaCode = res.data.data.areaCode; //用户区域
+                    localStorage.setItem("userInfo", JSON.stringify(res.data.data)); //用户信息存这种json字符串  JSON.parse() 存用户的信息
+                    localStorage.setItem("userId", uid); //用户id
+                    localStorage.setItem("roleName", roleName); //用户角色
+                    localStorage.setItem("departmentId", departmentId); //部门id
+                    localStorage.setItem("departmentName", departmentName); //部门名称
+                    localStorage.setItem("reporter", reporter); //上报人
+                    localStorage.setItem("areaCode", areaCode); //当前登录用户区域信息
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+
+              // this.selectDefault();
+              this.test();
+            })
+            .catch((err) => {
+              console.log(err);
+              this.refreshCode(); //失败重置验证码
+              this.$SucMessage.error("登录失败!");
+            });
+        } else {
+          this.refreshCode(); //失败重置验证码
+          this.$SucMessage.error("登录失败!");
+        }
+      });
+    }
+  }
+  //获取验证码,
+  getTelCode() {
+    if (this.phoneLoginForm.tel != "") {
+      if (this.rangeStatus == false) {
+        this.isDisplayTs = true;
+        return false;
+      }
+      const reg = /^1[3|4|5|7|8][0-9]\d{8}$/;
+      if (reg.test(this.phoneLoginForm.tel) && this.rangeStatus == true) {
+        const TIME_COUNT = 60;
+        if (!this.timer) {
+          this.count = TIME_COUNT;
+          this.show = false;
+
+          this.getPhoneCode(); //正式获取验证码
+          this.timer = setInterval(() => {
+            if (this.count > 0 && this.count <= TIME_COUNT) {
+              // 6.设置每秒钟递减
+              this.count--;
+            } else {
+              // 7.递减至0时,显示获取验证码按钮,隐藏倒计时模块,清除定时器this.timer,并将其置为null
+              this.show = true;
+              clearInterval(this.timer);
+              this.timer = null;
+            }
+          }, 1000);
+        }
+      }
+    } else {
+      this.$Message.error("请先填写手机号码!");
+    }
+  }
+
+  // 调用验证码接口
+  async getPhoneCode() {
+    let url = "wjAuthServer/userLogin/validatecode/wjSendLoginMessage";
+    let data = await publicApi.postWithParam(url, { mobileNum: this.phoneLoginForm.tel });
+    if (data.result == true) {
+      this.$SucMessage.success("短信发送成功");
+    } else {
+      this.$SucMessage.error("短信发送失败");
+    }
+  }
+
+  //  用户登录
+  phoneLoginSubmit(name: string) {
+    localStorage.removeItem("refresh-token");
+    let that = this;
+    const form: any = that.$refs[name];
+    form.validate((valid: any) => {
+      if (valid && this.rangeStatus) {
+        that
+          .$http({
+            url: "wjAuthServer/authentication/telLogin",
+            method: "post",
+            data: qs.stringify({
+              tel: this.phoneLoginForm.tel,
+              code: this.phoneLoginForm.code,
+              appid: this.phoneLoginForm.appid,
+              appsecret: this.phoneLoginForm.appsecret,
+              scope: this.phoneLoginForm.scope,
+            }),
+          })
+          .then((res) => {
+            if (res.data.result == false) {
+              this.$SucMessage.error(res.data.desc);
+            } else {
+              let tk = res.data.data["access_token"];
+              localStorage.setItem("refresh-token", tk);
+              that.$http.defaults.headers["Authorization"] = "bearer " + tk;
+              Axios.defaults.headers["Authorization"] = "bearer " + tk;
+              that.$http
+                .get("/wjAuthServer/authentication/user/infoByToken")
+                .then((res) => {
+                  if (res.status === 200) {
+                    store.commit("getUserInfo", res.data.data);
+                    const uid = res.data.data.id;
+                    const roleName = res.data.data.roleName;
+                    const departmentId = res.data.data.departmentId; //部门id
+                    const departmentName = res.data.data.departmentName; //部门 名字
+                    const reporter = res.data.data.realname; //上报人
+                    const areaCode = res.data.data.areaCode; //用户区域
+                    localStorage.setItem("userInfo", JSON.stringify(res.data.data)); //用户信息存这种json字符串  JSON.parse() 存用户的信息
+                    localStorage.setItem("userId", uid); //用户id
+                    localStorage.setItem("roleName", roleName); //用户角色
+                    localStorage.setItem("departmentId", departmentId); //部门id
+                    localStorage.setItem("departmentName", departmentName); //部门名称
+                    localStorage.setItem("reporter", reporter); //上报人
+                    localStorage.setItem("areaCode", areaCode); //当前登录用户区域信息
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+
+              // this.selectDefault();
+              this.test();
+            }
+          })
+          .catch((err) => {
+            this.$SucMessage.error("登录失败");
+          });
+      } else {
+        this.$SucMessage.error("登录失败");
+      }
+    });
+  }
+
+  // 点击用户账号
+  onClickUser() {
+    this.isActive = true;
+    this.isPhoneActive = false;
+    this.userPage = true;
+  }
+  //手机号验证码
+  onClickPhone() {
+    // console.log(this.$refs["formValidate"],"???");
+    //  (this.$refs["formValidate"] as any).resetFields(); //表单重置
+    this.isActive = false;
+    this.isPhoneActive = true;
+    this.userPage = false;
+  }
+  rangeStatus: boolean = false;
+  isDisplayTs: boolean = false;
+  // 滑块验证成功回调
+  handleSuccessFun(rangeStatusParams: any) {
+    this.rangeStatus = rangeStatusParams;
+    this.isDisplayTs = false;
+  }
+  // 滑块验证失败回调
+  handleErrorFun(rangeStatusParams: any) {
+    this.rangeStatus = rangeStatusParams;
+    this.isDisplayTs = true;
+  }
+  // selectDefault() {
+  //   this.$http
+  //     .get("wjAuthServer/check?resource=" + "wjOa" + "&op=" + "access")
+  //     .then((res) => {
+  //       if (res.data.allowed) {
+  //         this.$router.push({ path: "/main/dataCenter" });
+  //       } else {
+  //         this.$http.get("wjAuthServer/check?resource=" + "wjGis" + "&op=" + "access").then((res) => {
+  //           if (res.data.allowed) {
+  //             this.$router.push({ path: "/main/geologyInformation" });
+  //           } else {
+  //             this.$http.get("wjAuthServer/check?resource=" + "wjFangxun" + "&op=" + "access").then((res) => {
+  //               if (res.data.allowed) {
+  //                 this.$router.push({ path: "/main/floodMessage" });
+  //               } else {
+  //                 this.$http.get("wjAuthServer/check?resource=" + "wjGcyunxing" + "&op=" + "access").then((res) => {
+  //                   if (res.data.allowed) {
+  //                     this.$router.push({ path: "/main/projectOperation" });
+  //                   } else {
+  //                     this.$http.get("wjAuthServer/check?resource=" + "wjSzszy" + "&op=" + "access").then((res) => {
+  //                       if (res.data.allowed) {
+  //                         this.$router.push({ path: "/main/water" });
+  //                       } else {
+  //                         this.$http.get("wjAuthServer/check?resource=" + "wjVedio" + "&op=" + "access").then((res) => {
+  //                           if (res.data.allowed) {
+  //                             this.$router.push({ path: "/main/video" });
+  //                           } else {
+  //                             this.$http.get("wjAuthServer/check?resource=" + "wjDatacenter" + "&op=" + "access").then((res) => {
+  //                               if (res.data.allowed) {
+  //                                 this.$router.push({ path: "/main/dataCenter" });
+  //                               } else {
+  //                                 this.$http.get("wjAuthServer/check?resource=" + "wjGcBuild" + "&op=" + "access").then((res) => {
+  //                                   if (res.data.allowed) {
+  //                                     this.$router.push({ path: "/main/engineeringConstruction" });
+  //                                   } else {
+  //                                     this.$http.get("wjAuthServer/check?resource=" + "wjGongshui" + "&op=" + "access").then((res) => {
+  //                                       if (res.data.allowed) {
+  //                                         this.$router.push({ path: "/main/waterSupply" });
+  //                                       } else {
+  //                                         this.$http.get("wjAuthServer/check?resource=" + "wjPaishui" + "&op=" + "access").then((res) => {
+  //                                           if (res.data.allowed) {
+  //                                             this.$router.push({ path: "/main/draninageManage" });
+  //                                           } else {
+  //                                             this.$http.get("wjAuthServer/check?resource=" + "wjWaterENVIR" + "&op=" + "access").then((res) => {
+  //                                               if (res.data.allowed) {
+  //                                                 this.$router.push({ path: "/main/urbanWater" });
+  //                                               } else {
+  //                                                 this.$http.get("wjAuthServer/check?resource=" + "wjHzz" + "&op=" + "access").then((res) => {
+  //                                                   if (res.data.allowed) {
+  //                                                     this.$router.push({ path: "/main/hzz" });
+  //                                                   } else {
+  //                                                     this.$http.get("wjAuthServer/check?resource=" + "wjScreen" + "&op=" + "access").then((res) => {
+  //                                                       if (res.data.allowed) {
+  //                                                         this.$router.push({ path: "/dp" });
+  //                                                       }
+  //                                                     });
+  //                                                   }
+  //                                                 });
+  //                                               }
+  //                                             });
+  //                                           }
+  //                                         });
+  //                                       }
+  //                                     });
+  //                                   }
+  //                                 });
+  //                               }
+  //                             });
+  //                           }
+  //                         });
+  //                       }
+  //                     });
+  //                   }
+  //                 });
+  //               }
+  //             });
+  //           }
+  //         });
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.log(err, ">>>");
+
+  //       this.$SucMessage.error("无访问权限!");
+  //     });
+  // }
+  test() {
+    this.$router.push({
+      path: "/main/dataCenter/wyList",
+    });
+  }
+}
+</script>
+<style lang="scss" scoped>
+// scss 中/deep/ 会报loader错误，所以需要使用::v-deep
+$deep: "::v-deep";
+.qrcode {
+  position: fixed;
+  right: 50px;
+  bottom: 40px;
+}
+.apptext {
+  position: fixed;
+  right: 60px;
+  bottom: 15px;
+  color: #ffffff;
+  font-size: 16px;
+}
+.yanzhengma {
+  width: 76%;
+  margin-top: -6%;
+}
+.login_body {
+  display: flex;
+  justify-content: right;
+  //   align-items: center;
+  background-size: 100% 100%;
+  &::before {
+    width: 100%;
+    height: 100%;
+    content: "";
+    /* 一定要加定位，这样z-index才起作用 */
+    position: absolute;
+    z-index: -1;
+    opacity: 0.8;
+    background: url("../assets/login/backBg.jpeg") no-repeat;
+    background-size: 100% 100%;
+  }
+  .login-top {
+    position: absolute;
+    top: calc(50% - 280px);
+    font-size: 37px;
+    color: #ffffff;
+    font-weight: 900;
+    left: 64.5%;
+
+    img {
+      width: 40px;
+      height: 30px;
+      vertical-align: middle;
+      border-radius: 6px;
+    }
+  }
+  .login_main {
+    position: absolute;
+    // left: calc(50% - 200px);
+    top: calc(50% - 180px);
+    // position: relative;
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    // width: 1070px;
+    height: 490px;
+    border-radius: 8px;
+    padding: 0 40px;
+    background-color: rgb(255, 255, 255, 0.7);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+    margin-right: 6%;
+    .login_main_item {
+      height: 100%;
+
+      &:first-of-type {
+        width: 560px;
+        img {
+          position: absolute;
+          top: -20px;
+          left: 40px;
+        }
+        p {
+          color: white;
+          z-index: 999;
+          font-size: 50px;
+          font-weight: 900;
+          flex-wrap: wrap;
+          font-family: serif;
+          position: absolute;
+          text-align: left;
+          &:nth-child(2) {
+            width: 300px;
+            top: 20px;
+            left: 80px;
+          }
+          &:nth-child(3) {
+            width: 600px;
+            top: 85px;
+            left: 80px;
+          }
+        }
+      }
+      &:nth-of-type(2) {
+        width: calc(100% - 560px);
+        // height: 100%;
+      }
+    }
+    .login_main_title {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      height: 120px;
+      font-size: 22px;
+      .login-type {
+        color: #7a8599;
+        cursor: pointer;
+      }
+      .login-type:hover {
+        color: #232d47;
+      }
+      .active {
+        color: #232d47;
+      }
+      .phoneActive {
+        color: #232d47;
+      }
+      //   background: url('../assets/login/title.png') no-repeat;
+      //   background-position: center;
+    }
+    .login_main_list {
+      padding: 0 0 0 40px;
+      .sliderContainer {
+        width: 95%;
+        margin: 0 auto;
+        margin-bottom: 24px;
+        padding: 25px 0;
+        .tsStyle {
+          color: #ed4014;
+          font-size: 12px;
+          position: absolute;
+          left: 0 !important;
+          top: 40px !important;
+          letter-spacing: 1px;
+        }
+      }
+    }
+    .code_img {
+      width: 100%;
+      height: 36px;
+    }
+  }
+  #{$deep}.ivu-input-group-large .ivu-input,
+  .ivu-input-group-large > .ivu-input-group-append,
+  .ivu-input-group-large > .ivu-input-group-prepend {
+    height: 45px !important;
+    line-height: 45px !important;
+  }
+  #{$deep}.ivu-btn > span {
+    font-size: 19px;
+  }
+  [v-cloak] {
+    display: none !important;
+  }
+  #{$deep}.ivu-input-wrapper-large .ivu-input-icon {
+    height: 45px;
+    line-height: 45px;
+  }
+  #{$deep}.ivu-input-large {
+    height: 45px;
+    line-height: 45px;
+  }
+  #{$deep}.ivu-btn {
+    padding: 10px 20px 10px;
+  }
+  #{$deep} .ivu-btn > span {
+    font-size: 15px;
+  }
+}
+</style>
