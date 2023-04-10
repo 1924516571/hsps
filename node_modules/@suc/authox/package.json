@@ -1,0 +1,45 @@
+{
+  "_from": "@suc/authox",
+  "_id": "@suc/authox@1.0.7",
+  "_inBundle": false,
+  "_integrity": "sha1-WU/dGgu0HuJ5GkPWsHpoW5En+f4=",
+  "_location": "/@suc/authox",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@suc/authox",
+    "name": "@suc/authox",
+    "escapedName": "@suc%2fauthox",
+    "scope": "@suc",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "http://192.168.80.51:7001/@suc/authox/download/@suc/authox-1.0.7.tgz",
+  "_shasum": "594fdd1a0bb41ee2791a43d6b07a685b9127f9fe",
+  "_spec": "@suc/authox",
+  "_where": "/Users/yel/mac/node-test",
+  "author": "",
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "",
+  "license": "ISC",
+  "main": "authox.vue",
+  "name": "@suc/authox",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://cowork.sucsoft.com:3443/web/authox.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.7"
+}
